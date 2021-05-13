@@ -5,6 +5,6 @@ ENV MYSQL_DATABASE=${A801_DB} \
 	MYSQL_USER=${A801_USER} \
 	MYSQL_PASSWORD=${A801_PASS}
 
-ADD *.sql /docker-entrypoint-initdb.d
+ADD *.sql /docker-entrypoint-initdb.d/
 
 EXPOSE 3306

@@ -1,0 +1,10 @@
+FROM mariadb:10.1.48
+
+ENV MYSQL_DATABASE=${A801_DB} \
+	MYSQL_ROOT_PASSWORD=goaway \
+	MYSQL_USER=${A801_USER} \
+	MYSQL_PASSWORD=${A801_PASS}
+
+ADD *.sql /docker-entrypoint-initdb.d
+
+EXPOSE 3306

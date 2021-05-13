@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  database:
+    build: ./database
+    volumes:
+      - "test-db-data:/var/lib/mysql"
+    networks:
+      - database
+
+  mockupdb:
+    build: ./mockupdb
+    volumes:
+      - "mockup-data:/var/lib/mysql"
+    networks:
+      - database
+
+  updater:
+    build: ./updater
+    command: ["pypy3", "-u", "/src/start.py"]
+    depends_on:
+      - database
+      - mockupdb
+    networks:
+      - database
+
+volumes:
+  test-db-data:
+  mockup-data:
+
+networks:
+  database:

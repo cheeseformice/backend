@@ -6,6 +6,10 @@ services:
       - "test-db-data:/var/lib/mysql"
     networks:
       - database
+    environment:
+      - DB
+      - DB_USER
+      - DB_PASS
 
   mockupdb:
     build: ./mockupdb
@@ -13,6 +17,10 @@ services:
       - "mockup-data:/var/lib/mysql"
     networks:
       - database
+    environment:
+      - A801
+      - A801_USER
+      - A801_PASS
 
   updater:
     build: ./updater
@@ -22,6 +30,17 @@ services:
       - mockupdb
     networks:
       - database
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - A801
+      - A801_IP
+      - A801_USER
+      - A801_PASS
+      - BATCH_SIZE
+      - PIPE_SIZE
 
 volumes:
   test-db-data:

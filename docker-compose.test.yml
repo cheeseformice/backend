@@ -7,9 +7,9 @@ services:
     networks:
       - database
     environment:
-      - DB
-      - DB_USER
-      - DB_PASS
+      - MYSQL_DATABASE=${DB}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
 
   mockupdb:
     build: ./mockupdb
@@ -18,9 +18,9 @@ services:
     networks:
       - database
     environment:
-      - A801
-      - A801_USER
-      - A801_PASS
+      - MYSQL_DATABASE=${A801_DB}
+      - MYSQL_USER=${A801_USER}
+      - MYSQL_PASSWORD=${A801_PASS}
 
   updater:
     build: ./updater

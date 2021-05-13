@@ -1,3 +1,3 @@
 # This is run everyday at 14:00 UTC
-0 14 * * * root pypy3 -u /src/start.py > /proc/1/fd/1
+0 14 * * * root /start.sh pypy3 -u /src/start.py > /proc/1/fd/1
 # has to end with a newline

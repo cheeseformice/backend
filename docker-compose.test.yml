@@ -92,6 +92,8 @@ services:
 
   dressroom:
     build: ./dressroom
+    volumes:
+      - "./shared:/src/shared"
     depends_on:
       - redis
     networks:

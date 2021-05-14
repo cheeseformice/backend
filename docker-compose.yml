@@ -144,6 +144,8 @@ services:
 
   router:
     build: ./router
+    volumes:
+      - "./shared:/src/shared"
     depends_on:
       - redis
     networks:

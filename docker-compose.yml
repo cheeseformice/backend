@@ -1,0 +1,176 @@
+version: "3.3"
+services:
+  database:
+    build: ./database
+    volumes:
+      - "db-data:/var/lib/mysql"
+    networks:
+      - database
+    environment:
+      - MYSQL_DATABASE=${DB}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
+
+  updater:
+    build: ./updater
+    depends_on:
+      - database
+    networks:
+      - database
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - A801
+      - A801_IP
+      - A801_USER
+      - A801_PASS
+      - BATCH_SIZE
+      - PIPE_SIZE
+
+  redis:
+    image: redis:latest
+    networks:
+      - infrastructure
+
+  auth:
+    build: ./auth
+    volumes:
+      - "./shared:/src/shared"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+      - database
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - HASH_WORKERS=0
+      - WORKERS=2
+
+  changelogs:
+    build: ./changelogs
+    volumes:
+      - "./shared:/src/shared"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+      - database
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - WORKERS=2
+
+  dressroom:
+    build: ./dressroom
+    volumes:
+      - "./shared:/src/shared"
+    depends_on:
+      - redis
+    networks:
+      - infrastructure
+    environment:
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - WORKERS=2
+
+  lookup:
+    build: ./lookup
+    volumes:
+      - "./shared:/src/shared"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+      - database
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - WORKERS=2
+
+  profile:
+    build: ./profile
+    volumes:
+      - "./shared:/src/shared"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+      - database
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - NAME_WEBHOOK
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - WORKERS=2
+
+  router:
+    build: ./router
+    depends_on:
+      - redis
+    networks:
+      - router
+      - infrastructure
+    environment:
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - SESSION_KEY
+      - REFRESH_KEY
+      - VALIDATE_KEY
+      - WORKERS=2
+
+  nginx:
+    build: ./nginx
+    depends_on:
+      - router
+    networks:
+      - router
+    ports:
+      - "80:80"
+
+volumes:
+  test-db-data:
+
+networks:
+  database:
+  infrastructure:
+  router:

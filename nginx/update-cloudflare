@@ -1,0 +1,3 @@
+# This is run every 30 minutes to update cloudflare's IPs.
+0,30 * * * * root /update-cloudflare.sh
+# has to end with a newline

@@ -42,9 +42,143 @@ services:
       - BATCH_SIZE
       - PIPE_SIZE
 
+  redis:
+    image: redis:latest
+    networks:
+      - infrastructure
+
+  auth:
+    build: ./auth
+    volumes:
+      - "./shared:/src/shared"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - HASH_WORKERS=1
+      - WORKERS=1
+
+  changelogs:
+    build: ./changelogs
+    volumes:
+      - "./shared:/src/shared"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - WORKERS=1
+
+  dressroom:
+    build: ./dressroom
+    depends_on:
+      - redis
+    networks:
+      - infrastructure
+    environment:
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - WORKERS=1
+
+  lookup:
+    build: ./lookup
+    volumes:
+      - "./shared:/src/shared"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - WORKERS=1
+
+  profile:
+    build: ./profile
+    volumes:
+      - "./shared:/src/shared"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - NAME_WEBHOOK
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - WORKERS=1
+
+  router:
+    build: ./router
+    depends_on:
+      - redis
+    networks:
+      - router
+      - infrastructure
+    environment:
+      - INFRA_HOST
+      - INFRA_PORT
+      - INFRA_RECONNECT
+      - INFRA_DEAD
+      - INFRA_HEARTBEAT
+      - SESSION_KEY
+      - REFRESH_KEY
+      - VALIDATE_KEY
+      - WORKERS=1
+
+  nginx:
+    build: ./nginx
+    depends_on:
+      - router
+    networks:
+      - router
+    ports:
+      - "80:80"
+
 volumes:
   test-db-data:
   mockup-data:
 
 networks:
   database:
+  infrastructure:
+  router:

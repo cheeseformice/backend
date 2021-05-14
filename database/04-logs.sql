@@ -11,6 +11,14 @@ ALTER TABLE `player_changelog`
 
 CREATE TABLE `tribe_new` LIKE `tribe`;
 
+CREATE TABLE `tribe_active` (
+  `id` bigint(20) NOT NULL DEFAULT '0',
+  `members` bigint(20) NOT NULL DEFAULT '0',
+  `active` bigint(20) NOT NULL DEFAULT '0',
+  `members_sqrt` bigint(20) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE `tribe_changelog` LIKE `tribe`;
 ALTER TABLE `tribe_changelog`
   ADD COLUMN `log_id` int(11) NOT NULL AUTO_INCREMENT FIRST,

@@ -15,5 +15,10 @@ RUN pypy3 -u /packed-assets/unpack.py
 # Copy our code from the current folder inside the container
 COPY src/* /src/
 
+# Copy start.sh
+COPY start.sh /
+RUN chmod +x /start.sh
+
 # Define our command to be run when launching the container
+ENTRYPOINT ["/start.sh"]
 CMD ["pypy3", "-u", "service.py"]

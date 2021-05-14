@@ -15,6 +15,9 @@ function getChildENV(i) {
 	};
 }
 
+process.on("SIGTERM", shutDown);
+process.on("SIGINT", shutDown);
+
 if (workersAmount > 1 && cluster.isMaster) {
 	const workers = {};
 
@@ -37,6 +40,15 @@ if (workersAmount > 1 && cluster.isMaster) {
 		worker = cluster.fork(getChildENV(id));
 		workers[worker.process.pid] = id;
 	});
+
+	function shutDown() {
+		const pids = Object.keys(workers);
+
+		for (var i = 0; i < pids.length; i++) {
+			const worker = workers[ pids[i] ];
+			worker.kill("SIGTERM");
+		}
+	}
 	return;
 }
 
@@ -81,4 +93,9 @@ for (var i = 0; i < modules.length; i++) {
 }
 
 app.use("/api", api);
-app.listen(80);
+
+const server = app.listen(80);
+
+function shutDown() {
+	server.close();
+}

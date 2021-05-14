@@ -168,7 +168,7 @@ services:
       - "80:80"
 
 volumes:
-  test-db-data:
+  db-data:
 
 networks:
   database:

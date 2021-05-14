@@ -5,12 +5,12 @@ const { v4: uuidv4 } = require("uuid");
 const Request = require("./request");
 
 
-const heartbeat_delay = 5000;
-const assume_dead = 10000;
-const ping_delay = 30000;
-const ping_timeout = 2000;
-const redis_host = "redis";
-const redis_port = 6379;
+const heartbeat_delay = (process.env.INFRA_HEARTBEAT || 5) * 1000;
+const assume_dead = (process.env.INFRA_DEAD || 10) * 1000;
+const ping_delay = (process.env.INFRA_PING_DELAY || 30) * 1000;
+const ping_timeout = (process.env.INFRA_PING_TIMEOUT || 2) * 1000;
+const redis_host = process.env.INFRA_HOST || "redis";
+const redis_port = process.env.INFRA_PORT || 6379;
 
 
 class Service {

@@ -157,6 +157,8 @@ services:
       - INFRA_RECONNECT
       - INFRA_DEAD
       - INFRA_HEARTBEAT
+      - INFRA_PING_DELAY
+      - INFRA_PING_TIMEOUT
       - SESSION_KEY
       - REFRESH_KEY
       - VALIDATE_KEY

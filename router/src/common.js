@@ -1,7 +1,7 @@
 "use strict";
 
 const jwt = require("jsonwebtoken");
-const Service = require("./redis/service");
+const Service = require("./shared/jsservice/service");
 const service = new Service(
 	"router", true,
 	parseInt(process.env.SERVICE_WORKER_ID || "0")

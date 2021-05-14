@@ -16,7 +16,7 @@ CREATE TABLE `tribe_active` (
   `members` bigint(20) NOT NULL DEFAULT '0',
   `active` bigint(20) NOT NULL DEFAULT '0',
   `members_sqrt` bigint(20) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`),
+  PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `tribe_changelog` LIKE `tribe`;

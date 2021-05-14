@@ -13,7 +13,7 @@ COPY packed-assets /packed-assets
 RUN pypy3 -u /packed-assets/unpack.py
 
 # Copy our code from the current folder inside the container
-COPY src/* /src/
+COPY src .
 
 # Download wait-for-it
 ADD https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh /wait-for-it.sh

@@ -8,7 +8,7 @@ from .costume import sections, Costume
 assets = os.path.abspath(
 	os.path.join(
 		__file__,
-		"..", "..", "assets"
+		"..", "..", "..", "assets"
 	)
 )
 

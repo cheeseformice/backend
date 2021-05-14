@@ -47,7 +47,7 @@ services:
     networks:
       - infrastructure
     volumes:
-      - "redis-data:/data"
+      - "test-redis-data:/data"
 
   auth:
     build: ./auth
@@ -187,7 +187,7 @@ services:
 volumes:
   test-db-data:
   mockup-data:
-  redis-data:
+  test-redis-data:
 
 networks:
   database:

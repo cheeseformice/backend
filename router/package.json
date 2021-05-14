@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cheeseformice/router.git"
+    "url": "git+https://github.com/cheeseformice/backend.git"
   },
   "author": "Tocutoeltuco",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/cheeseformice/router/issues"
+    "url": "https://github.com/cheeseformice/backend/issues"
   },
-  "homepage": "https://github.com/cheeseformice/router#readme",
+  "homepage": "https://github.com/cheeseformice/backend#readme",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.17.1",

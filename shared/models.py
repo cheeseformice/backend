@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 
 
-metadata = sa.Metadata()
+metadata = sa.MetaData()
 
 
 def to_columns(fields):

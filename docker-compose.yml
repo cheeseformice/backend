@@ -177,6 +177,25 @@ services:
     ports:
       - "80:80"
 
+  validation:
+    build: ./validation
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
+    volumes:
+      - "./shared:/src/shared"
+      - "redis-socket:/tmp/docker"
+    depends_on:
+      - redis
+    networks:
+      - infrastructure
+    environment:
+      - INFRA_ADDR
+      - INFRA_RECONNECT
+      - FORUM_USER
+      - FORUM_PASS
+
 volumes:
   db-data:
   redis-data:

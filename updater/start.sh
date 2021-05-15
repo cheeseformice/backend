@@ -8,4 +8,5 @@ set -e
 /wait-for-it.sh "$DB_IP:3306" --timeout=60
 
 # Execute the command
+env > /etc/environment
 exec $@

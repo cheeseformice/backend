@@ -14,8 +14,6 @@ function getChildENV(i) {
 		VALIDATE_KEY: process.env.VALIDATE_KEY,
 		INFRA_HOST: process.env.INFRA_HOST,
 		INFRA_PORT: process.env.INFRA_PORT,
-		INFRA_DEAD: process.env.INFRA_DEAD,
-		INFRA_HEARTBEAT: process.env.INFRA_HEARTBEAT,
 		INFRA_PING_DELAY: process.env.INFRA_PING_DELAY,
 		INFRA_PING_TIMEOUT: process.env.INFRA_PING_TIMEOUT,
 	};

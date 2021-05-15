@@ -5,8 +5,6 @@ const { v4: uuidv4 } = require("uuid");
 const Request = require("./request");
 
 
-const heartbeat_delay = (process.env.INFRA_HEARTBEAT || 5) * 1000;
-const assume_dead = (process.env.INFRA_DEAD || 10) * 1000;
 const ping_delay = (process.env.INFRA_PING_DELAY || 30) * 1000;
 const ping_timeout = (process.env.INFRA_PING_TIMEOUT || 2) * 1000;
 const redis_host = process.env.INFRA_HOST || "redis";
@@ -22,9 +20,12 @@ class Service {
 
 		this.otherWorkers = {};
 		this.usedWorkers = {};
-		this.deaths = {};
 		this.waiters = {};
 		this.requestHandlers = {};
+
+		this.pings = {};
+		this.nextPingAt = 0;
+		this.pingValidUntil = 0;
 
 		this.success = 0;
 		this.errors = 0;
@@ -38,16 +39,20 @@ class Service {
 		this.redisSubscriber.subscribe(this.myChannel);
 		this.redisSubscriber.subscribe("service:healthcheck");
 
-		setInterval(this.heartbeatLoop.bind(this), heartbeat_delay);
-
 		if (doPings) {
 			this.pingId = null;
 			this.pingStart = 0;
-			this.pings = {};
+			this.nextPings = {};
 			this.missingResponses = [];
 			this.pingTimeout = null;
 			this.pingCallback = null;
-			setInterval(this.pingLoop.bind(this), ping_delay);
+
+			// Add some offset to the ping loop, depending on the worker
+			// This way, two workers will never send the ping packet at the
+			// same time.
+			setTimeout(() => {
+				setInterval(this.pingLoop.bind(this), ping_delay);
+			}, worker * ping_timeout);
 		}
 	}
 
@@ -57,10 +62,6 @@ class Service {
 
 	onRequest(request, handler) {
 		this.requestHandlers[request] = handler;
-	}
-
-	onHeartbeat(handler) {
-		this.heartbeatCallback = handler;
 	}
 
 	onPing(handler) {
@@ -77,12 +78,12 @@ class Service {
 		}
 
 		let worker;
-		const now = Date.now();
+		const pingValid = Date.now() < this.pingValidUntil;
 		for (var attempt = 0; attempt < workers.length; attempt++) {
 			index = (index + 1) % workers.length;
 			worker = workers[index];
 
-			if (now >= this.deaths[`${target}@${worker}`]) {
+			if (pingValid && !this.pings[`${target}@${worker}`]) {
 				continue;
 			}
 			break;
@@ -135,7 +136,7 @@ class Service {
 		}
 
 		const listener = `${target}@${worker}`;
-		if (!this.deaths[listener] || Date.now() >= this.deaths[listener]) {
+		if (Date.now() < this.pingValidUntil && !this.pings[listener]) {
 			// None of the workers are alive
 			return callback({
 				err: "unavailable",
@@ -234,7 +235,11 @@ class Service {
 				if (msg.ping_id != this.pingId) { return; }
 
 				const name = `${msg.source}@${msg.worker}`;
-				this.pings[name] = Date.now() - this.pingStart;
+				this.nextPings[name] = {
+					ping: Date.now() - this.pingStart,
+					success: msg.success,
+					errors: msg.errors,
+				};
 
 				let index = this.missingResponses.indexOf(name);
 				if (index != -1) {
@@ -242,10 +247,7 @@ class Service {
 
 					if (this.missingResponses.length == 0) {
 						clearTimeout(this.pingTimeout);
-						this.pingId = null;
-						if (!!this.pingCallback) {
-							this.pingCallback(this.pings);
-						}
+						this.pingDone();
 					}
 				}
 
@@ -254,53 +256,74 @@ class Service {
 			}
 
 		} else if (channel == "service:healthcheck") {
-			if (msg.type == "heartbeat") {
-				const source = msg.source;
-				const worker = msg.worker;
-				const name = `${source}@${worker}`;
+			if (msg.type == "ping") {
+				let success = this.success;
+				let errors = this.errors;
+				this.success = 0;
+				this.errors = 0;
 
-				if (!this.otherWorkers[source]) {
-					this.otherWorkers[source] = [worker];
-				} else if (!this.otherWorkers[source].includes(worker)) {
-					this.otherWorkers[source].push(worker);
+				this.nextPingAt = Date.now() + ping_delay - ping_timeout;
+				this.send(msg.source, "pong", {
+					ping_id: msg.ping_id,
+					success: success,
+					errors: errors,
+				}, msg.worker);
+
+			} else if (msg.type == "ping-result") {
+				this.pingValidUntil = Date.now() + ping_delay * 2;
+
+				if (msg.source === this.name && msg.worker == this.worker) {
+					// Ignore echo
+					return;
 				}
 
-				this.heartbeatCallback(name, msg.success, msg.errors);
-				this.deaths[name] = Date.now() + assume_dead;
-
-			} else if (msg.type == "ping") {
-				this.send(msg.source, "pong", {
-					ping_id: msg.ping_id
-				}, msg.worker);
+				this.pingDone(msg.pings);
 			}
 		}
 	}
 
-	heartbeatLoop() {
-		let success = this.success;
-		let errors = this.errors;
-		this.success = 0;
-		this.errors = 0;
+	pingDone(pings) {
+		this.pings = pings || this.nextPings;
+		this.pingId = null;
 
-		this.sendStrict("service:healthcheck", "heartbeat", {
-			success: success,
-			errors: errors
-		});
+		if (!!this.pingCallback) {
+			this.pingCallback(this.pings);
+		}
+
+		if (!pings) {
+			// Result from this worker. Need to broadcast results!
+			this.sendStrict("service:healthcheck", "ping-result", {
+				pings: this.pings
+			});
+		}
+
+		const services = Object.keys(this.pings);
+		for (var i = 0; i < services.length; i++) {
+			let [ name, worker ] = services[i].split("@", 2);
+			worker = parseInt(worker);
+
+			if (!this.otherWorkers[name]) {
+				this.otherWorkers[name] = [worker];
+			} else if (!this.otherWorkers[name].includes(worker)) {
+				this.otherWorkers[name].push(worker);
+			}
+		}
 	}
 
 	pingLoop() {
+		if (Date.now() < this.nextPingAt) {
+			// Ping made recently (most likely by another worker)
+			return;
+		}
+
 		this.pingId = uuidv4();
 		this.pingStart = Date.now();
-		this.pings = {};
+		this.nextPings = {};
 
 		this.missingResponses = [];
-		let services = Object.keys(this.deaths);
+		let services = Object.keys(this.pings);
 		for (var i = 0; i < services.length; i++) {
-			let service = services[i];
-
-			if (Date.now() < this.deaths[service]) {
-				this.missingResponses.push(service);
-			}
+			this.missingResponses.push(services[i]);
 		}
 
 		this.sendStrict("service:healthcheck", "ping", {
@@ -308,11 +331,7 @@ class Service {
 		});
 
 		this.pingTimeout = setTimeout(() => {
-			this.pingId = null;
-
-			if (!!this.pingCallback) {
-				this.pingCallback(this.pings);
-			}
+			this.pingDone();
 		}, ping_timeout);
 	}
 }

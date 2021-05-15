@@ -5,96 +5,46 @@ const { service } = require("./common");
 
 const router = express.Router();
 
-var statuses = {};
 var statusListeners = [];
-
-// Triggered when a service sends a heartbeat packet
-service.onHeartbeat((serv, success, errors) => {
-	if (!statuses[serv]) {
-		// The service isn't registered in our statuses
-		statuses[serv] = {
-			success: success,
-			errors: errors,
-		};
-	} else {
-		// The server is registered, just sum the data
-		statuses[serv].success += success;
-		statuses[serv].errors += errors;
-	}
-});
 
 // Triggered when this service sends a ping request and it gets completed
 service.onPing((pings) => {
-	let data = statuses;
-	statuses = {}; // reset so other heartbeats don't get affected/lost
+	let toSend = {};
 
-	// Get all the services that replied (or not) to this ping
-	let services = Object.keys(pings);
+	// format with structure
+	// {
+	// 	"service": {
+	// 		"0": {
+	// 			"success": 0,
+	// 			"errors": 0,
+	// 			"ping": 2
+	// 		},
+	// 		"1": {
+	// 			"success": 0,
+	// 			"errors": 0,
+	// 			"ping": 2
+	// 		}
+	// 	}
+	// }
+
+	const services = Object.keys(pings);
 	for (var i = 0; i < services.length; i++) {
-		let service = services[i];
+		const [service, worker] = services[i].split("@", 2);
 
-		if (!data[service]) {
-			// The service isn't in the heartbeat list.
-			// It just connected to the network.
-			data[service] = {
-				success: 0,
-				errors: 0,
-				ping: pings[service],
+		if (!toSend[service]) {
+			toSend[service] = {
+				[worker]: pings[ services[i] ]
 			};
 		} else {
-			// The service was in the heartbeat list. Register its ping.
-			data[service].ping = pings[service];
+			toSend[service][worker] = pings[ services[i] ];
 		}
 	}
 
-	// Check if any service sent heartbeat data, but not ping (died)
-	services = Object.keys(data);
-	for (i = 0; i < services.length; i++) {
-		let service = data[ services[i] ];
-
-		if (typeof service.ping == "undefined") {
-			// The service died! Set ping to null.
-			service.ping = null;
-		}
+	toSend = JSON.stringify(toSend);
+	// Notify all the clients listening for this event
+	for (i = 0; i < statusListeners.length; i++) {
+		statusListeners[i].send(toSend);
 	}
-
-	setImmediate(() => {
-		let toSend = {};
-
-		// format with structure
-		// {
-		// 	"service": {
-		// 		"0": {
-		// 			"success": 0,
-		// 			"errors": 0,
-		// 			"ping": 2
-		// 		},
-		// 		"1": {
-		// 			"success": 0,
-		// 			"errors": 0,
-		// 			"ping": 2
-		// 		}
-		// 	}
-		// }
-
-		for (var i = 0; i < services.length; i++) {
-			const [service, worker] = services[i].split("@");
-
-			if (!toSend[service]) {
-				toSend[service] = {
-					[worker]: data[ services[i] ]
-				};
-			} else {
-				toSend[service][worker] = data[ services[i] ];
-			}
-		}
-
-		toSend = JSON.stringify(toSend);
-		// Notify all the clients listening for this event
-		for (i = 0; i < statusListeners.length; i++) {
-			statusListeners[i].send(toSend);
-		}
-	});
 });
 
 // A new client wants to listen to service status

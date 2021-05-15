@@ -21,8 +21,8 @@ logger = logging.getLogger("service")
 
 
 class config:
-	assume_dead = float(os.getenv("INFRA_DEAD", "30"))
-	heartbeat_delay = float(os.getenv("INFRA_HEARTBEAT", "15"))
+	ping_delay = float(os.getenv("INFRA_PING_DELAY", "30"))
+	ping_timeout = float(os.getenv("INFRA_PING_TIMEOUT", "2"))
 
 	host = os.getenv("INFRA_HOST", "redis")
 	port = int(os.getenv("INFRA_PORT", "6379"))
@@ -56,10 +56,14 @@ class Service:
 		self._events = []
 		self.other_workers = {}
 		self.used_workers = {}
-		self.deaths = {}
 		self.waiters = {}
 		self.rejections = {}
 		self.request_handlers = {}
+
+		# Ping data
+		self.pings = {}
+		self.next_ping_at = 0
+		self.ping_valid_until = 0
 
 		# Request data
 		self.success = 0
@@ -139,12 +143,13 @@ class Service:
 		else:
 			index = -1
 
-		now, length = time.time(), len(workers)
+		length = len(workers)
+		ping_valid = time.time() < self.ping_valid_until
 		for attempt in range(length):
 			index = (index + 1) % length
 			worker = workers[index]
 
-			if now >= self.deaths[f"{target}@{worker}"]:
+			if ping_valid and f"{target}@{worker}" not in self.pings:
 				# If the worker is dead, ignore it!
 				continue
 
@@ -211,8 +216,7 @@ class Service:
 			worker = self.select_worker(target)
 
 		listener = f"{target}@{worker}"
-		if listener not in self.deaths \
-			or time.time() >= self.deaths[listener]:
+		if time.time() < self.ping_valid_until and listener not in self.pings:
 			# None of the workers are alive
 			raise ServiceUnavailable("The target is dead.")
 
@@ -284,25 +288,32 @@ class Service:
 				self.dispatch("message", msg)
 
 		elif channel == "service:healthcheck":
-			if msg["type"] == "heartbeat":
-				# Some service broadcasted a heartbeat. Save that.
-				source = msg["source"]
-				worker = msg["worker"]
-				name = f"{source}@{worker}"
+			if msg["type"] == "ping":
+				success, errors = self.success, self.errors
+				self.success, self.errors = 0, 0
 
-				if source not in self.other_workers:
-					self.other_workers[source] = [worker]
-				elif worker not in self.other_workers[source]:
-					# Does not allow duplicates!
-					self.other_workers[source].append(worker)
+				self.next_ping_at = time.time() \
+					+ config.ping_delay \
+					- config.ping_timeout
 
-				self.deaths[name] = time.time() + config.assume_dead
-
-			elif msg["type"] == "ping":
 				self.loop.create_task(self.send(
 					msg["source"], "pong",
-					worker=msg["worker"], ping_id=msg["ping_id"]
+					worker=msg["worker"], ping_id=msg["ping_id"],
+					success=success, errors=errors,
 				))
+
+			elif msg["type"] == "ping-result":
+				self.pings = msg["pings"]
+				self.ping_valid_until = time.time() + config.ping_delay * 2
+
+				for service in self.pings:
+					name, worker = service.split("@")
+					worker = int(worker)
+
+					if name not in self.other_workers:
+						self.other_workers[name] = [worker]
+					elif worker not in self.other_workers[name]:
+						self.other_workers[name].append(worker)
 
 	def stop(self):
 		self.loop.stop()
@@ -351,21 +362,4 @@ class Service:
 		await self.redis.subscribe(self.my_channel)
 		await self.redis.subscribe("service:healthcheck")
 
-		self.loop.create_task(self.heartbeat_loop())
 		self.dispatch("boot", self)
-
-	async def heartbeat_loop(self):
-		while True:
-			await asyncio.sleep(config.heartbeat_delay)
-
-			success, errors = self.success, self.errors
-			self.success, self.errors = 0, 0
-
-			if self.redis.main.open:
-				await self.send_strict(
-					"service:healthcheck",
-					"heartbeat",
-
-					success=success,
-					errors=errors,
-				)

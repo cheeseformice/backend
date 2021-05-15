@@ -67,8 +67,8 @@ services:
       - INFRA_HOST
       - INFRA_PORT
       - INFRA_RECONNECT
-      - INFRA_DEAD
-      - INFRA_HEARTBEAT
+      - INFRA_PING_DELAY
+      - INFRA_PING_TIMEOUT
       - HASH_WORKERS=1
       - WORKERS=1
 
@@ -90,8 +90,8 @@ services:
       - INFRA_HOST
       - INFRA_PORT
       - INFRA_RECONNECT
-      - INFRA_DEAD
-      - INFRA_HEARTBEAT
+      - INFRA_PING_DELAY
+      - INFRA_PING_TIMEOUT
       - WORKERS=1
 
   dressroom:
@@ -106,8 +106,8 @@ services:
       - INFRA_HOST
       - INFRA_PORT
       - INFRA_RECONNECT
-      - INFRA_DEAD
-      - INFRA_HEARTBEAT
+      - INFRA_PING_DELAY
+      - INFRA_PING_TIMEOUT
       - WORKERS=1
 
   lookup:
@@ -128,8 +128,8 @@ services:
       - INFRA_HOST
       - INFRA_PORT
       - INFRA_RECONNECT
-      - INFRA_DEAD
-      - INFRA_HEARTBEAT
+      - INFRA_PING_DELAY
+      - INFRA_PING_TIMEOUT
       - WORKERS=1
 
   profile:
@@ -151,8 +151,8 @@ services:
       - INFRA_HOST
       - INFRA_PORT
       - INFRA_RECONNECT
-      - INFRA_DEAD
-      - INFRA_HEARTBEAT
+      - INFRA_PING_DELAY
+      - INFRA_PING_TIMEOUT
       - WORKERS=1
 
   router:
@@ -168,8 +168,6 @@ services:
       - INFRA_HOST
       - INFRA_PORT
       - INFRA_RECONNECT
-      - INFRA_DEAD
-      - INFRA_HEARTBEAT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
       - SESSION_KEY

@@ -31,11 +31,15 @@ services:
 
   redis:
     image: redis:latest
+    command: [
+      "/bin/sh", "-c",
+      "chown -R redis /tmp/docker && redis-server /etc/redis/redis.conf"
+    ]
     networks:
       - infrastructure
     volumes:
       - "redis-data:/data"
-      - "./redis.conf:/etc/redis.conf"
+      - "./redis.conf:/etc/redis/redis.conf"
       - "redis-socket:/tmp/docker"
 
   auth:

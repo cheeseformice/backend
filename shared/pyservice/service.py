@@ -24,8 +24,7 @@ class config:
 	ping_delay = float(os.getenv("INFRA_PING_DELAY", "30"))
 	ping_timeout = float(os.getenv("INFRA_PING_TIMEOUT", "2"))
 
-	host = os.getenv("INFRA_HOST", "redis")
-	port = int(os.getenv("INFRA_PORT", "6379"))
+	host = os.getenv("INFRA_ADDR", "redis:6379")
 	reconnect = float(os.getenv("INFRA_RECONNECT", "10"))
 
 
@@ -69,8 +68,14 @@ class Service:
 		self.success = 0
 		self.errors = 0
 
+		if ":" in config.host:
+			address = config.host.split(":")
+			address[1] = int(address[1])
+		else:
+			address = config.host
+
 		self.redis = Client(
-			config.host, config.port,
+			address,
 			reconnect=config.reconnect,
 			loop=self.loop
 		)

@@ -5,11 +5,10 @@ from .exceptions import InvalidEventName
 
 
 class Client:
-	def __init__(self, host, port=6379, reconnect=0, loop=None):
+	def __init__(self, address, reconnect=0, loop=None):
 		self.loop = loop or asyncio.get_event_loop()
 
-		self.host = host
-		self.port = port
+		self.address = address
 		self.reconnect = reconnect
 
 		self.subscribed = set()
@@ -43,14 +42,14 @@ class Client:
 			self.loop.create_task(coro)
 
 	async def start(self):
-		await self.channels.connect(self.host, self.port)
-		await self.main.connect(self.host, self.port)
+		await self.channels.connect(self.address)
+		await self.main.connect(self.address)
 
 	async def on_connection_lost(self, client):
 		if self.reconnect > 0:
 			await asyncio.sleep(self.reconnect)
 
-			await client.connect(self.host, self.port)
+			await client.connect(self.address)
 
 	async def on_connection_made(self, client):
 		if client.name == "channels":

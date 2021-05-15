@@ -143,12 +143,15 @@ class Connection:
 		# And dispatch an event with the response
 		self.client.dispatch("message_received", self, message)
 
-	async def connect(self, host, port=6379):
+	async def connect(self, address):
+		if isinstance(address, (tuple, list)) and len(address) == 2:
+			coro = self.loop.create_connection(self._factory, *address)
+		elif isinstance(address, str):
+			coro = self.loop.create_unix_connection(self._factory, address)
+
 		try:
 			self.response_queue = asyncio.Queue()
-			self.transport, self.protocol = await asyncio.wait_for(
-				self.loop.create_connection(self._factory, host, port), 3
-			)
+			self.transport, self.protocol = await asyncio.wait_for(coro, 3)
 		except asyncio.TimeoutError:
 			self.client.dispatch("connection_lost", self)
 			return

@@ -48,11 +48,14 @@ services:
       - infrastructure
     volumes:
       - "test-redis-data:/data"
+      - "./redis.conf:/etc/redis.conf"
+      - "test-redis-socket:/tmp/docker"
 
   auth:
     build: ./auth
     volumes:
       - "./shared:/src/shared"
+      - "test-redis-socket:/tmp/docker"
     depends_on:
       - redis
       - database
@@ -64,8 +67,7 @@ services:
       - DB_IP
       - DB_USER
       - DB_PASS
-      - INFRA_HOST
-      - INFRA_PORT
+      - INFRA_ADDR
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
@@ -76,6 +78,7 @@ services:
     build: ./changelogs
     volumes:
       - "./shared:/src/shared"
+      - "test-redis-socket:/tmp/docker"
     depends_on:
       - redis
       - database
@@ -87,8 +90,7 @@ services:
       - DB_IP
       - DB_USER
       - DB_PASS
-      - INFRA_HOST
-      - INFRA_PORT
+      - INFRA_ADDR
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
@@ -98,13 +100,13 @@ services:
     build: ./dressroom
     volumes:
       - "./shared:/src/shared"
+      - "test-redis-socket:/tmp/docker"
     depends_on:
       - redis
     networks:
       - infrastructure
     environment:
-      - INFRA_HOST
-      - INFRA_PORT
+      - INFRA_ADDR
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
@@ -114,6 +116,7 @@ services:
     build: ./lookup
     volumes:
       - "./shared:/src/shared"
+      - "test-redis-socket:/tmp/docker"
     depends_on:
       - redis
       - database
@@ -125,8 +128,7 @@ services:
       - DB_IP
       - DB_USER
       - DB_PASS
-      - INFRA_HOST
-      - INFRA_PORT
+      - INFRA_ADDR
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
@@ -136,6 +138,7 @@ services:
     build: ./profile
     volumes:
       - "./shared:/src/shared"
+      - "test-redis-socket:/tmp/docker"
     depends_on:
       - redis
       - database
@@ -148,8 +151,7 @@ services:
       - DB_USER
       - DB_PASS
       - NAME_WEBHOOK
-      - INFRA_HOST
-      - INFRA_PORT
+      - INFRA_ADDR
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
@@ -159,14 +161,14 @@ services:
     build: ./router
     volumes:
       - "./shared:/src/shared"
+      - "test-redis-socket:/tmp/docker"
     depends_on:
       - redis
     networks:
       - router
       - infrastructure
     environment:
-      - INFRA_HOST
-      - INFRA_PORT
+      - INFRA_ADDR
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
@@ -188,6 +190,7 @@ volumes:
   test-db-data:
   mockup-data:
   test-redis-data:
+  test-redis-socket:
 
 networks:
   database:

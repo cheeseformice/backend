@@ -7,8 +7,7 @@ const Request = require("./request");
 
 const ping_delay = (process.env.INFRA_PING_DELAY || 30) * 1000;
 const ping_timeout = (process.env.INFRA_PING_TIMEOUT || 2) * 1000;
-const redis_host = process.env.INFRA_HOST || "redis";
-const redis_port = process.env.INFRA_PORT || 6379;
+const redis_address = process.env.INFRA_ADDR || "redis:6379";
 
 
 class Service {
@@ -32,8 +31,22 @@ class Service {
 
 		this.messageCallback = null;
 
-		this.redisSubscriber = redis.createClient(redis_port, redis_host);
-		this.redis = redis.createClient(redis_port, redis_host);
+		let connectOptions;
+		if (redis_address.includes(":")) {
+			const [host, port] = redis_address.split(":", 2);
+
+			connectOptions = {
+				host: host,
+				port: parseInt(port),
+			};
+		} else {
+			connectOptions = {
+				path: redis_address,
+			};
+		}
+
+		this.redisSubscriber = redis.createClient(connectOptions);
+		this.redis = redis.createClient(connectOptions);
 
 		this.redisSubscriber.on("message", this.onMessage.bind(this));
 		this.redisSubscriber.subscribe(this.myChannel);

@@ -21,6 +21,11 @@ You can fill in `A801_*` environment variables with the credentials given to you
 docker-compose up --build --detach
 ```
 
+**NOTE:** Atelier801's API is... HUGE! And this project works by copying it locally. It uses around 36GB of disk space (leaderboards and everything).
+
+The first time it is run, it has to download the whole database, which can take several hours (up to 20 hours depending on your setup).
+After that is done, any subsequent update will take, in the worse case scenario (slow network, slow disk I/O and slow CPU) it can take up to an hour or two.
+
 ### If you don't have access to Atelier801's API (or want to run tests)
 This repository contains a [mockupdb](./mockupdb) service, which is a mockup of Atelier801's API, containing a way smaller volume of data. This allows you to run tests and experiment with the services, locally.
 

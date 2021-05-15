@@ -160,7 +160,7 @@ async def update_roles():
 				name = row.name.lower()
 
 				if name in check_names:
-					check_names.remove(row)
+					check_names.remove(name)
 
 				user_ids[name] = row.id
 				changes[name] = row.new_name

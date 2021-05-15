@@ -4,7 +4,9 @@
 set -e
 
 # Wait for database and redis to be available
-/wait-for-it.sh "$INFRA_HOST:$INFRA_PORT" --timeout=60
+if [[ $INFRA_ADDR == *":"* ]]; then
+	/wait-for-it.sh "$INFRA_ADDR" --timeout=60
+fi
 /wait-for-it.sh "$DB_IP:3306" --timeout=60
 
 # Execute the command

@@ -4,7 +4,9 @@
 set -e
 
 # Wait for redis to be available
-/wait-for-it.sh "$INFRA_HOST:$INFRA_PORT" --timeout=60
+if [[ $INFRA_ADDR == *":"* ]]; then
+	/wait-for-it.sh "$INFRA_ADDR" --timeout=60
+fi
 
 # Execute the command
 exec $@

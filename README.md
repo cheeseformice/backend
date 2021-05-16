@@ -3,7 +3,13 @@ These are all the services the HTTP API requires in order to work.
 This uses `docker-compose` in order to work, but every service is meant to be easily isolated if needed; as long as the dependecies are running (generally just redis and the database).
 
 ## Running
-First you need to create a `.env` file.
+First you need to create a `frontend` network with the following command
+```bash
+docker network create --attachable --driver bridge frontend
+```
+Once that is done, that will allow you to also connect the [frontend service](https://github.com/cheeseformice/cheese.formice.com) to the nginx reverse proxy.
+
+Then you need to create a `.env` file.
 Running the following commands will clone this repository and copy the testing environment.
 ```bash
 git clone https://github.com/cheeseformice/backend

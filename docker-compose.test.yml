@@ -187,6 +187,7 @@ services:
       - router
     networks:
       - router
+      - frontend
     ports:
       - "80:80"
 
@@ -200,3 +201,5 @@ networks:
   database:
   infrastructure:
   router:
+  frontend:
+    external: true

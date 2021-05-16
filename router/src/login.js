@@ -185,11 +185,18 @@ function updatePassword(method) {
 						expiresIn: "5m"
 					});
 
+					var title
+					if (method == "register") {
+						title = "Account validation";
+					} else {
+						title = "Password recovery";
+					}
+
 					// Tell the validation bot to send a forum PM
 					service.redis.publish("bots:validation", JSON.stringify({
 						target: name,
-						token: token,
-						language: "en"
+						title: title,
+						content: token,
 					}));
 
 					// Return an empty response to signal everything is ok

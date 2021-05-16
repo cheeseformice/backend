@@ -179,10 +179,7 @@ services:
 
   validation:
     build: ./validation
-    deploy:
-      restart_policy:
-        condition: any
-        delay: 5s
+    restart: always
     volumes:
       - "./shared:/src/shared"
       - "redis-socket:/tmp/docker"

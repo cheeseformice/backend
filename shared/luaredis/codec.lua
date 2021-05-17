@@ -14,7 +14,7 @@ local function encode(list)
 		parts[i + 1] = "$" .. #str .. "\r\n" .. str .. "\r\n"
 	end
 
-	return concat(parts, "", 1, length)
+	return concat(parts, "", 1, length + 1)
 end
 
 local decode

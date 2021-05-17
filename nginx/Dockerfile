@@ -16,3 +16,7 @@ COPY forward.conf /etc/nginx/templates/forward.conf.template
 
 COPY init.sh /docker-entrypoint.d/init.sh
 RUN chmod +x /docker-entrypoint.d/init.sh
+
+RUN mkdir /data && \
+	mkdir /data/nginx && \
+	mkdir /data/nginx/cache

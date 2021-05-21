@@ -33,7 +33,7 @@ function mergeReports(reports) {
 			errors = 0;
 
 		for (var i = 0; i < reports.length; i++) {
-			let serviceReport = reports[i][service];
+			let serviceReport = reports[i][name];
 			if (!serviceReport) { continue; }
 
 			count += 1;
@@ -45,7 +45,7 @@ function mergeReports(reports) {
 		merged[name] = {
 			success,
 			errors,
-			ping: Math.ceil(ping / count),
+			ping: Math.ceil(ping / Math.max(count, 1)),
 		};
 	}
 

@@ -175,7 +175,10 @@ service.onPing((responsible, pings) => {
 		nextGroup = [];
 	}
 
-	let toSend = JSON.stringify(compressReports(report));
+	let toSend = JSON.stringify({
+		services,
+		data: compressReports([report])[0],
+	});
 	// Notify all the clients listening for this event
 	for (let i = 0; i < statusListeners.length; i++) {
 		statusListeners[i].send(toSend);

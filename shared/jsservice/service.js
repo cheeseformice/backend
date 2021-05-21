@@ -260,7 +260,7 @@ class Service {
 
 					if (this.missingResponses.length == 0) {
 						clearTimeout(this.pingTimeout);
-						this.pingDone();
+						this.pingDone(true);
 					}
 				}
 
@@ -290,17 +290,17 @@ class Service {
 					return;
 				}
 
-				this.pingDone(msg.pings);
+				this.pingDone(false, msg.pings);
 			}
 		}
 	}
 
-	pingDone(pings) {
+	pingDone(responsible, pings) {
 		this.pings = pings || this.nextPings;
 		this.pingId = null;
 
 		if (!!this.pingCallback) {
-			this.pingCallback(this.pings);
+			this.pingCallback(responsible, this.pings);
 		}
 
 		if (!pings) {
@@ -344,7 +344,7 @@ class Service {
 		});
 
 		this.pingTimeout = setTimeout(() => {
-			this.pingDone();
+			this.pingDone(true);
 		}, ping_timeout);
 	}
 }

@@ -219,7 +219,7 @@ router.get("/status/past", (req, res) => {
 			for (let i = 0; i < result.length; i++) {
 				forInterval.push(JSON.parse(result[i]));
 
-				if (i > 0 && (i + 1) % interval) {
+				if (i > 0 && ((i + 1) % interval === 0)) {
 					reports.push(mergeReports(forInterval));
 					forInterval = [];
 				}

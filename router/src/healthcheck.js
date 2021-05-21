@@ -103,7 +103,7 @@ function parsePings(pings) {
 				...ping,
 			};
 		} else {
-			report[service].count += ping.count;
+			report[service].count += 1;
 			report[service].ping += ping.ping;
 			report[service].success += ping.success;
 			report[service].errors += ping.errors;

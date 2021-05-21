@@ -52,7 +52,7 @@ class Service {
 		this.redisSubscriber.subscribe(this.myChannel);
 		this.redisSubscriber.subscribe("service:healthcheck");
 
-		if (doPings) {
+		if (doPings && worker === 0) {
 			this.pingId = null;
 			this.pingStart = 0;
 			this.nextPings = {};
@@ -275,7 +275,7 @@ class Service {
 				this.success = 0;
 				this.errors = 0;
 
-				this.nextPingAt = Date.now() + ping_delay - ping_timeout;
+				// this.nextPingAt = Date.now() + ping_delay - ping_timeout;
 				this.send(msg.source, "pong", {
 					ping_id: msg.ping_id,
 					success: success,

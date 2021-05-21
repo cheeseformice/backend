@@ -198,7 +198,7 @@ router.ws("/status", (ws, req) => {
 
 router.get("/status/past", (req, res) => {
 	let { interval } = req.query;
-	interval = parseInt(interval) | 2;
+	interval = parseInt(interval) || 2;
 
 	if (interval > 12) {
 		writeError(res, 400, "Requested interval is too big.");

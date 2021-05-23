@@ -13,6 +13,7 @@ var services = [];
 const reportsPerGroup = 10; // 5 minutes (1 report = 30 seconds)
 const historySize = 288; // 24 hours
 var nextGroup = [];
+var toSend = {services: [], data: []};
 
 service.redis.smembers("status:services", (err, result) => {
 	if (!!err) {
@@ -175,10 +176,11 @@ service.onPing((responsible, pings) => {
 		nextGroup = [];
 	}
 
-	let toSend = JSON.stringify({
+	toSend = {
 		services,
 		data: compressReports([report])[0],
-	});
+	};
+	let forWS = JSON.stringify(toSend);
 	// Notify all the clients listening for this event
 	for (let i = 0; i < statusListeners.length; i++) {
 		statusListeners[i].send(toSend);
@@ -194,6 +196,10 @@ router.ws("/status", (ws, req) => {
 		let index = statusListeners.indexOf(ws);
 		statusListeners.splice(index, 1);
 	});
+});
+
+router.get("/status/current", (req, res) => {
+	res.send(toSend);
 });
 
 router.get("/status/past", (req, res) => {

@@ -183,7 +183,7 @@ service.onPing((responsible, pings) => {
 	let forWS = JSON.stringify(toSend);
 	// Notify all the clients listening for this event
 	for (let i = 0; i < statusListeners.length; i++) {
-		statusListeners[i].send(toSend);
+		statusListeners[i].send(forWS);
 	}
 });
 

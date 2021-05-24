@@ -2,6 +2,10 @@
 These are all the services the HTTP API requires in order to work.
 This uses `docker-compose` in order to work, but every service is meant to be easily isolated if needed; as long as the dependecies are running (generally just redis and the database).
 
+## API
+Documentation of the public API can be found [here](https://app.swaggerhub.com/apis/Tocutoeltuco/CheeseForMice/1.0.0).
+Feel free to create an issue if you find any flaw (either the documentation or code)
+
 ## Running
 First you need to create a `frontend` network with the following command
 ```bash

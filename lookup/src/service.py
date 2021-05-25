@@ -152,7 +152,7 @@ async def lookup_player(request):
 		query = query.order_by(desc(getattr(period.c, db_field)))
 
 	elif request.search:
-		name = request.search.replace("%", "") + "%"
+		name = request.search.replace("%", "").replace("_", "\\_") + "%"
 
 		name_query = player.c.name.like(name)
 		select_from = player
@@ -273,7 +273,7 @@ async def lookup_tribe(request):
 		)
 
 	elif request.search:
-		name = request.search.replace("%", "") + "%"
+		name = request.search.replace("%", "").replace("_", "\\_") + "%"
 
 		where = tribe.c.name.like(name)
 

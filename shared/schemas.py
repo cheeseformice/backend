@@ -28,13 +28,10 @@ def as_list(obj):
 	return obj.split(",")
 
 
-from_hex = partial(int, base=16)
-
-
-def hex_list(obj):
-	if not obj:
-		return []
-	return list(map(from_hex, obj.split(",")))
+def from_hex(string):
+	if not string:
+		return 0
+	return int(string, base=16)
 
 
 def outfits(dress_list):
@@ -89,8 +86,8 @@ schemas = {
 	"Shop": {
 		"look": Field("look", "1;0"),
 		"outfits": Process(Field("dress_list", ""), outfits),
-		"mouse_color": Process(Field("color1", 0)),
-		"shaman_color": Process(Field("color2", 0)),
+		"mouse_color": Process(Field("color1", ""), from_hex),
+		"shaman_color": Process(Field("color2", ""), from_hex),
 	},
 
 	"TribeShamanStats": {

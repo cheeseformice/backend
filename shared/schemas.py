@@ -89,7 +89,8 @@ schemas = {
 	"Shop": {
 		"look": Field("look", "1;0"),
 		"outfits": Process(Field("dress_list", ""), outfits),
-		"colors": Process(Field("colors", "0,0"), hex_list),
+		"mouse_color": Process(Field("color1", 0)),
+		"shaman_color": Process(Field("color2", 0)),
 	},
 
 	"TribeShamanStats": {

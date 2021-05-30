@@ -125,6 +125,7 @@ router.get("/players/:idOrName", (req, res) => {
 		name: null,
 		period_start: null,
 		period_end: null,
+		use_recent: false,
 	};
 	const id = parseInt(idOrName);
 
@@ -139,6 +140,9 @@ router.get("/players/:idOrName", (req, res) => {
 		// They're requesting by ID
 		request.id = id;
 	}
+
+	const { recent } = req.query;
+	request.use_recent = recent === "true";
 
 	let { success, start, end } = checkPeriod(req, res);
 	if (!success) { return; }
@@ -174,6 +178,7 @@ router.get("/tribes/:idOrName", (req, res) => {
 		name: null,
 		period_start: null,
 		period_end: null,
+		use_recent: false,
 	};
 
 	if (isNaN(idOrName)) {
@@ -183,6 +188,9 @@ router.get("/tribes/:idOrName", (req, res) => {
 		// Otherwise, an ID
 		request.id = parseInt(idOrName);
 	}
+
+	const { recent } = req.query;
+	request.use_recent = recent === "true";
 
 	let { success, start, end } = checkPeriod(req, res);
 	if (!success) { return; }

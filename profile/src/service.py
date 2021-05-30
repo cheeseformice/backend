@@ -222,42 +222,71 @@ async def update_roles():
 		await asyncio.sleep(60 * 30)  # 30 min
 
 
+def parse_date(date):
+	year, month, day = map(int, date.split("-"))
+	return datetime(year=year, month=month, day=day) \
+		+ timedelta(days=1)
+
+
+async def fetch_boundary_log(_id, conn, table, condition):
+	result = await conn.execute(
+		select(table)
+		.order_by(desc(table.c.log_id))
+		.where(and_(
+			table.c.id == _id,
+			condition
+		))
+		.limit(1)
+	)
+	return await result.first()
+
+
+def calculate_difference(is_tribe, end, start):
+	check = stats  # comes from shared.models
+	if is_tribe:
+		check += (
+			"members",
+			"active",
+		)
+		check = check[1:]  # ignore experience
+
+	profile_stats = {}
+	for stat in check:
+		profile_stats[stat] = (end[stat] or 0) - (start[stat] or 0)
+	return profile_stats
+
+
+def null_stats(is_tribe):
+	check = stats  # comes from shared.models
+	if is_tribe:
+		check += (
+			"members",
+			"active",
+		)
+		check = check[1:]  # ignore experience
+
+	profile_stats = {}
+	for stat in check:
+		profile_stats[stat] = 0
+	return profile_stats
+
+
 async def fetch_period(conn, request, table, row):
 	period = None
 	if row is not None and (request.period_start or request.period_end):
 		start, end = None, None
 
 		if request.period_start is not None:
-			year, month, day = map(int, request.period_start.split("-"))
-			start = datetime(year=year, month=month, day=day) \
-				+ timedelta(days=1)
-
-			result = await conn.execute(
-				select(table)
-				.order_by(desc(table.c.log_id))
-				.where(and_(
-					table.c.id == row.id,
-					table.c.log_date <= start
-				))
-				.limit(1)
+			date = parse_date(request.period_start)
+			start = await fetch_boundary_log(
+				row.id, conn, table, table.c.log_date <= date
 			)
-			start = await result.first()
 
 		if request.period_end is not None:
-			year, month, day = map(int, request.period_end.split("-"))
-			end = datetime(year=year, month=month, day=day) \
-				+ timedelta(days=1)
-
-			result = await conn.execute(
-				select(table)
-				.order_by(desc(table.c.log_id))
-				.where(and_(
-					table.c.id == row.id,
-					table.c.log_date <= end
-				))
-				.limit(1)
+			date = parse_date(request.period_end)
+			end = await fetch_boundary_log(
+				row.id, conn, table, table.c.log_date <= date
 			)
-			end = await result.first()
 
 		if end is None:
 			if request.period_end is None:
@@ -269,21 +298,22 @@ async def fetch_period(conn, request, table, row):
 
 		is_tribe = table == tribe_changelog
 		if start is not None:
-			check = stats
-			if is_tribe:
-				check += (
-					"members",
-					"active",
-				)
-				check = check[1:]  # ignore experience
+			profile_stats = calculate_difference(is_tribe, end, start)
 
-			profile_stats = {}
-			for stat in check:
-				profile_stats[stat] = (end[stat] or 0) - (start[stat] or 0)
+		elif request.period_start is None or request.use_recent:
+			# No period start requested, so return stats up to the end point
+			profile_stats = end
 
 		else:
-			# No period start, no need to calculate differences
-			profile_stats = end
+			# Period start requested, but not found. Use newer data.
+			date = parse_date(request.period_start)
+			start = await fetch_boundary_log(
+				row.id, conn, table, table.c.log_date > date
+			)
+			if start is None:
+				profile_stats = null_stats(is_tribe)
+			else:
+				profile_stats = calculate_difference(is_tribe, end, start)
 
 		today = datetime.utcnow().strftime("%Y-%m-%d")
 		period = {

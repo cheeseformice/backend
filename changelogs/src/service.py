@@ -1,6 +1,8 @@
 import os
 import asyncio
 
+from datetime import timedelta
+
 from collections import namedtuple
 
 from shared.pyservice import Service
@@ -271,8 +273,10 @@ def fix_dates(unused_dates, all_dates, to_fix):
 	for entry in to_fix:
 		entry[0] = all_dates.index(entry[0])
 
+	day = timedelta(days=1)
 	for idx in range(len(all_dates)):
-		all_dates[idx] = all_dates[idx].strftime("%Y-%m-%dT%H:%M:%SZ")
+		date = all_dates[idx] - day
+		all_dates[idx] = date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 @service.on_request("player")

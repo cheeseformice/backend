@@ -274,6 +274,7 @@ def null_stats(is_tribe):
 async def fetch_period(conn, request, table, row):
 	period = None
 	if row is not None and (request.period_start or request.period_end):
+		period_start = None
 		start, end = None, None
 
 		if request.period_start is not None:
@@ -313,11 +314,12 @@ async def fetch_period(conn, request, table, row):
 			if start is None:
 				profile_stats = null_stats(is_tribe)
 			else:
+				period_start = start.log_date.strftime("%Y-%m-%d")
 				profile_stats = calculate_difference(is_tribe, end, start)
 
 		today = datetime.utcnow().strftime("%Y-%m-%d")
 		period = {
-			"start": request.period_start or "2010-05-01",
+			"start": period_start or request.period_start or "2010-05-01",
 			"end": request.period_end or today,
 		}
 

@@ -12,7 +12,7 @@ from shared.models import roles, player, player_changelog, player_privacy, \
 from shared.schemas import as_dict
 
 from aiomysql.sa import create_engine
-from sqlalchemy import or_, and_, desc, func
+from sqlalchemy import or_, and_, desc, asc, func
 from sqlalchemy.sql import select, delete
 from sqlalchemy.dialects.mysql import insert
 
@@ -228,10 +228,12 @@ def parse_date(date):
 		+ timedelta(days=1)
 
 
-async def fetch_boundary_log(_id, conn, table, condition):
+async def fetch_boundary_log(_id, conn, table, condition, _desc=True):
 	result = await conn.execute(
 		select(table)
-		.order_by(desc(table.c.log_id))
+		.order_by(
+			desc(table.c.log_id) if _desc else asc(table.c.log_id)
+		)
 		.where(and_(
 			table.c.id == _id,
 			condition
@@ -301,7 +303,7 @@ async def fetch_period(conn, request, table, row):
 		if start is not None:
 			profile_stats = calculate_difference(is_tribe, end, start)
 
-		elif request.period_start is None or request.use_recent:
+		elif request.period_start is None or not request.use_recent:
 			# No period start requested, so return stats up to the end point
 			profile_stats = end
 
@@ -309,7 +311,7 @@ async def fetch_period(conn, request, table, row):
 			# Period start requested, but not found. Use newer data.
 			date = parse_date(request.period_start)
 			start = await fetch_boundary_log(
-				row.id, conn, table, table.c.log_date > date
+				row.id, conn, table, table.c.log_date > date, _desc=False
 			)
 			if start is None:
 				profile_stats = null_stats(is_tribe)

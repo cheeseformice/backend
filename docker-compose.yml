@@ -63,7 +63,7 @@ services:
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
       - HASH_WORKERS=0
-      - WORKERS=2
+      - WORKERS=1
 
   changelogs:
     build: ./changelogs
@@ -85,7 +85,7 @@ services:
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
-      - WORKERS=2
+      - WORKERS=1
 
   dressroom:
     build: ./dressroom
@@ -101,7 +101,7 @@ services:
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
-      - WORKERS=2
+      - WORKERS=1
 
   lookup:
     build: ./lookup

@@ -24,6 +24,8 @@ Require = namedtuple(
 
 
 def as_list(obj):
+	if obj == "":
+		return []
 	return obj.split(",")
 
 
@@ -34,6 +36,8 @@ def from_hex(string):
 
 
 def outfits(dress_list):
+	if dress_list == "":
+		return []
 	return dress_list.split("/")
 
 

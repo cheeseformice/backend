@@ -67,12 +67,14 @@ async def get_new_names(names, only_changed=False, conn=None):
 		)
 
 	if not users:
-		return users
+		if only_changed:
+			return []
+		return list(users.values())
 
 	# in_() doesn't work, we have to manually add eq checks
 	name_in = [
 		player_changelog.c.name == user.old_name
-		for user in users
+		for user in users.values
 	]
 
 	if conn is None:

@@ -1,7 +1,4 @@
 import os
-import re
-import json
-import aiohttp
 import asyncio
 
 from shared.pyservice import Service
@@ -12,9 +9,8 @@ from shared.models import roles, player, player_changelog, player_privacy, \
 from shared.schemas import as_dict
 
 from aiomysql.sa import create_engine
-from sqlalchemy import or_, and_, desc, asc, func
-from sqlalchemy.sql import select, delete
-from sqlalchemy.dialects.mysql import insert
+from sqlalchemy import and_, desc, asc, func
+from sqlalchemy.sql import select
 
 
 class env:
@@ -22,29 +18,7 @@ class env:
 	cfm_user = os.getenv("DB_USER", "test")
 	cfm_pass = os.getenv("DB_PASS", "test")
 	cfm_db = os.getenv("DB", "api_data")
-	name_webhook = os.getenv("NAME_WEBHOOK")
 
-
-assert env.name_webhook is not None, "NAME_WEBHOOK doesn't have any link"
-
-
-TEAM_API = "http://discorddb.000webhostapp.com/get?k=&e=json&f=teamList&i=1"
-A801_API = "https://atelier801.com/staff-ajax?role={}"
-A801_REGEX = (
-	r'([^ <]+)<span class="font-s couleur-hashtag-pseudo"> (#\d{4})</span>'
-)
-tfm_roles = (
-	# role, api
-	# api: int -> from atelier801.com
-	# api: str -> from discorddb
-	("admin", 128),
-	("mod", 1),
-	("sentinel", 4),
-	("mapcrew", 16),
-	("module", "mt"),
-	("funcorp", "fc"),
-	("fashion", "fs"),
-)
 
 service = Service("profile")
 
@@ -62,7 +36,6 @@ async def on_boot(new):
 	)
 
 	service.loop.create_task(ping_db())
-	service.loop.create_task(update_roles())
 
 
 async def ping_db():
@@ -71,155 +44,6 @@ async def ping_db():
 			await conn.connection.ping()
 
 		await asyncio.sleep(60.0)
-
-
-async def update_roles():
-	while True:
-		teams = {}
-		a801 = {}
-		a801_members = set()
-		check_names = set()  # Check name changes
-		user_ids = {}
-
-		async with aiohttp.ClientSession() as sess:
-			# Download team API members
-			async with sess.get(TEAM_API) as resp:
-				result = await resp.json()
-
-				for team, members in result.items():
-					# Add these names to check_names
-					members = list(map(str.lower, members.keys()))
-					check_names = check_names.union(members)
-
-					# Check if we need to store this role
-					for role, api in tfm_roles:
-						if api == team:
-							break
-					else:
-						continue
-
-					teams[role] = list(members)
-
-			# Download all needed A801 teams
-			for role, api in tfm_roles:
-				if not isinstance(api, int):
-					continue
-
-				async with sess.get(A801_API.format(api)) as resp:
-					a801[role] = members = []
-
-					content = await resp.read()
-					for name, tag in re.findall(A801_REGEX, content.decode()):
-						name = f"{name.lower()}{tag}"
-						members.append(name)
-						a801_members.add(name)
-
-		# Check all the name changes
-		async with service.db.acquire() as conn:
-			name_in = [player.c.id == 0]  # in_() doesn't work lol
-			for name in check_names.union(a801_members):
-				name_in.append(player.c.name == name)
-
-			result = await conn.execute(
-				select(
-					player.c.id,
-					player.c.name,
-				)
-				.where(or_(*name_in))
-			)
-			for row in await result.fetchall():
-				name = row.name.lower()
-
-				if name in check_names:
-					check_names.remove(name)
-
-				user_ids[name] = row.id
-
-			# Now all names in check_names are invalid!
-			# Let's check logs.
-			name_in = [player.c.id == 0]  # in_() doesn't work lol
-			for name in check_names:
-				name_in.append(player_changelog.c.name == name)
-
-			result = await conn.execute(
-				select(
-					player_changelog.c.id,
-					player_changelog.c.name,
-					player.c.name.label("new_name"),
-				)
-				.select_from(
-					player_changelog
-					.join(player, player.c.id == player_changelog.c.id)
-				)
-				.where(or_(*name_in))
-				.group_by(player_changelog.c.name)
-			)
-			# Write changes
-			changes = {}
-			for row in await result.fetchall():
-				name = row.name.lower()
-
-				if name in check_names:
-					check_names.remove(name)
-
-				user_ids[name] = row.id
-				changes[name] = row.new_name
-
-			for name in check_names:
-				changes[name] = None
-
-		# Send the notification
-		if len(changes) > 0:
-			async with aiohttp.ClientSession() as sess:
-				await sess.post(env.name_webhook, json={
-					"content": json.dumps(changes)
-				}, headers={
-					"Content-Type": "application/json"
-				})
-
-		async with service.db.acquire() as conn:
-			values = {}
-
-			for idx, (role, api) in enumerate(tfm_roles):
-				if isinstance(api, int):
-					container = a801
-				else:
-					container = teams
-
-				for name in container[role]:
-					if name in user_ids:
-						_id = user_ids[name]
-						values[_id] = values.get(_id, 0) | (2 ** idx)
-
-			result = await conn.execute(
-				select(roles)
-				.where(roles.c.tfm > 0)
-			)
-			for row in await result.fetchall():
-				if row.id not in values:
-					values[row.id] = 0
-
-			query = []
-			for _id, bits in values.items():
-				query.append({
-					"id": _id,
-					"cfm": 0,
-					"tfm": bits
-				})
-
-			insert_stmt = insert(roles).values(query)
-			await conn.execute(
-				insert_stmt.on_duplicate_key_update(
-					tfm=insert_stmt.inserted.tfm
-				)
-			)
-
-			await conn.execute(
-				delete(roles)
-				.where(and_(roles.c.tfm == 0, roles.c.cfm == 0))
-			)
-
-		await asyncio.sleep(60 * 30)  # 30 min
 
 
 def parse_date(date):

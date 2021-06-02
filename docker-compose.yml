@@ -141,12 +141,34 @@ services:
       - DB_IP
       - DB_USER
       - DB_PASS
-      - NAME_WEBHOOK
       - INFRA_ADDR
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
       - WORKERS=2
+
+  naming:
+    build: ./naming
+    volumes:
+      - "./shared:/src/shared"
+      - "test-redis-socket:/tmp/docker"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+      - database
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - NAME_WEBHOOK
+      - INFRA_ADDR
+      - INFRA_RECONNECT
+      - INFRA_PING_DELAY
+      - INFRA_PING_TIMEOUT
+      - WORKERS=1
 
   router:
     build: ./router

@@ -1,15 +1,22 @@
 import re
 import aiohttp
 
-from collections import namedtuple
-
 from shared.models import player, player_changelog
 
 from sqlalchemy import or_
 from sqlalchemy.sql import select
 
 
-User = namedtuple("User", "id old_name new_name changed")
+class User(object):
+	id: int
+	old_name: str
+	new_name: str
+	changed: bool
+
+	def __init__(self, **kwargs):
+		self.__dict__.update(kwargs)
+
+
 TEAM_API = "http://discorddb.000webhostapp.com/get?k=&e=json&f=teamList&i=1"
 A801_API = "https://atelier801.com/staff-ajax?role={}"
 A801_REGEX = (

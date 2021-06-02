@@ -358,6 +358,9 @@ async def change_roles(request):
 		await request.end()
 
 		new_roles = from_cfm_roles(new_roles)
+		await service.send_strict("broadcast:roles", "cfm", **{
+			str(row.id): new_roles
+		})
 		insert_stmt = (
 			insert(roles)
 			.values(

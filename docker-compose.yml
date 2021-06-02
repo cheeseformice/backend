@@ -151,7 +151,7 @@ services:
     build: ./naming
     volumes:
       - "./shared:/src/shared"
-      - "test-redis-socket:/tmp/docker"
+      - "redis-socket:/tmp/docker"
     depends_on:
       - redis
       - database

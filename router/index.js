@@ -15,6 +15,7 @@ function getChildENV(i) {
 		INFRA_ADDR: process.env.INFRA_ADDR,
 		INFRA_PING_DELAY: process.env.INFRA_PING_DELAY,
 		INFRA_PING_TIMEOUT: process.env.INFRA_PING_TIMEOUT,
+		GITHUB_SECRET: process.env.GITHUB_SECRET,
 	};
 }
 
@@ -56,6 +57,7 @@ if (workersAmount > 1 && cluster.isMaster) {
 }
 
 
+const crypto = require("crypto");
 const helmet = require("helmet");
 const cors = require("cors");
 const expressWs = require("express-ws");
@@ -63,11 +65,33 @@ const { writeError } = require("./src/common");
 
 const app = express();
 
+// Verify GitHub requests
+const secret = process.env.GITHUB_SECRET || "test123";
+
+function getSignature(buf) {
+	const hmac = crypto.createHmac("sha256", secret);
+	hmac.update(buf, "utf-8");
+	return `sha256=${hmac.digest("hex")}`;
+}
+
+function verify(req, res, buf, encoding) {
+	const { x_hub_signature_256 } = req.headers;
+
+	if (x_hub_signature_256 === undefined) {
+		return; // No signature; nothing to validate.
+	}
+
+	const expected = getSignature(buf);
+	if (expected !== x_hub_signature_256) {
+		throw new Error("Invalid signature.");
+	}
+}
+
 // Middleware
 expressWs(app);
 app.use(helmet());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ verify }));
 app.use((err, req, res, next) => {
 	if (err instanceof SyntaxError) {
 		writeError(res, 400, "invalid json body");
@@ -86,6 +110,7 @@ let modules = [
 	[false, "profile"],
 	[false, "session"],
 	[false, "tfm"],
+	[false, "github"],
 ];
 
 const api = express.Router();

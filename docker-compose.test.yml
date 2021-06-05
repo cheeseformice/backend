@@ -201,6 +201,7 @@ services:
       - SESSION_KEY
       - REFRESH_KEY
       - VALIDATE_KEY
+      - GITHUB_SECRET
       - WORKERS=1
 
   nginx:

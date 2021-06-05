@@ -25,12 +25,28 @@ handlers["cheeseformice/dressroom-assets"] = (req, event, body) => {
 		return;
 	}
 
-	for (var i = 0; i < workers.length; i++) {
-		service.send("dressroom", "request", {
-			request_type: "update-assets",
-			request_id: "0",
-		}, workers[i]);
-	}
+	// Signal the container to download and prepare the new assets
+	service.request("dressroom", "prepare-assets", {}, (result) => {
+		if (result.type == "content") {
+			// The service opens a stream first so the request doesn't die
+			// Once it is done downloading and preparing, it returns "done"
+			if (result.content === "done") {
+				// Notify all the dressroom workers to update their cache
+
+				for (var i = 0; i < workers.length; i++) {
+					service.send("dressroom", "request", {
+						request_type: "update-assets",
+						request_id: "0",
+					}, workers[i]);
+				}
+			}
+
+		} else if (!!result.err) {
+			console.error(
+				"Something went wrong while updating dressroom assets"
+			);
+		}
+	});
 };
 
 router.post("/github", (req, res) => {

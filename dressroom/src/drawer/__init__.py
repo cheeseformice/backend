@@ -14,50 +14,49 @@ assets = os.path.abspath(
 
 get_section_name = sections.get
 
+pose_list, fur_list, costume_list = [], [], {}
+poses_cache, furs_cache, costumes_cache = {}, {}, {}
 
-# Read from assets
-pose_list = []
-fur_list = []
-costume_list = {}
 
-for pose in os.listdir(
-	os.path.join(assets, "poses")
-):
-	name, ext = pose.rsplit(".", 1)
-	if ext != "svg":
-		continue
+def read_assets():
+	global pose_list, fur_list, costume_list
+	global poses_cache, furs_cache, costumes_cache
 
-	pose_list.append(name)
+	pose_list, fur_list, costume_list = [], [], {}
+	poses_cache, furs_cache, costumes_cache = {}, {}, {}
 
-for fur in os.listdir(
-	os.path.join(assets, "furs")
-):
-	if not fur.isdigit():
-		continue
-
-	fur_list.append(int(fur))
-
-for section in sections.values():
-	costumes = []
-	costume_list[section] = costumes
-
-	for costume in os.listdir(
-		os.path.join(assets, "costumes", section)
+	for pose in os.listdir(
+		os.path.join(assets, "poses")
 	):
-		name, ext = costume.rsplit(".", 1)
-		if ext != "svg" or not name.isdigit():
+		name, ext = pose.rsplit(".", 1)
+		if ext != "svg":
 			continue
 
-		costumes.append(int(name))
+		pose_list.append(name)
 
+	for fur in os.listdir(
+		os.path.join(assets, "furs")
+	):
+		if not fur.isdigit():
+			continue
 
-# Prepare caches
-poses_cache = {}
-furs_cache = {}
-costumes_cache = {}
+		fur_list.append(int(fur))
 
-for section in sections.values():
-	costumes_cache[section] = {}
+	for section in sections.values():
+		costumes = []
+		costume_list[section] = costumes
+
+		for costume in os.listdir(
+			os.path.join(assets, "costumes", section)
+		):
+			name, ext = costume.rsplit(".", 1)
+			if ext != "svg" or not name.isdigit():
+				continue
+
+			costumes.append(int(name))
+
+	for section in sections.values():
+		costumes_cache[section] = {}
 
 
 def get_pose(pose):
@@ -93,3 +92,6 @@ def get_costume(section_name, costume):
 		cache[costume] = Costume(section_name, costume)
 
 	return cache[costume]
+
+
+read_assets()

@@ -2,7 +2,8 @@ import os
 
 from shared.pyservice import Service
 
-from drawer import get_pose, get_fur, get_costume, get_section_name
+from drawer import read_assets, get_pose, get_fur, get_costume, \
+	get_section_name
 
 
 service = Service("dressroom")
@@ -14,6 +15,20 @@ SVG_DEF = '<svg xmlns="http://www.w3.org/2000/svg" \
 async def on_boot(new):
 	global service
 	service = new
+
+
+@service.on_request("prepare-assets")
+async def prepare_assets(request):
+	await request.open_stream()
+	os.system("pypy3 -u /packed-assets/download.py")
+	os.system("pypy3 -u /packed-assets/unpack.py")
+	await request.send("done")
+	await request.end()
+
+
+@service.on_request("update-assets")
+async def update_assets(request):
+	read_assets()
 
 
 @service.on_request("fur")

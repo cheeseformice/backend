@@ -14,12 +14,12 @@ handlers["cheeseformice/dressroom-assets"] = (req, event, body) => {
 	if (event !== "check_run") { return; }
 
 	const { check_run } = body;
-	if (check_run["name"] !== "Download and publish dressroom assets") { return; }
-	if (check_run["conclussion"] !== "success") { return; }
+	if (check_run.name !== "Download and publish dressroom assets") { return; }
+	if (check_run.conclussion !== "success") { return; }
 
 	// New dressroom assets have been published.
 	// Let's notify every dressroom worker!
-	const workers = service.otherWorkers["dressroom"];
+	const workers = service.otherWorkers.dressroom;
 	if (!workers) {
 		console.error("No dressroom workers in network?");
 		return;
@@ -50,9 +50,9 @@ handlers["cheeseformice/dressroom-assets"] = (req, event, body) => {
 };
 
 router.post("/github", (req, res) => {
-	const { x_hub_signature_256 } = req.headers;
+	const received = req.headers["x-hub-signature-256"];
 
-	if (x_hub_signature_256 === undefined) {
+	if (received === undefined) {
 		return writeError(res, 400, "Missing signature.");
 	}
 	// If the signature is not undefined, it has been verified

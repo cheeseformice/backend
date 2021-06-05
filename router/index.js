@@ -75,14 +75,14 @@ function getSignature(buf) {
 }
 
 function verify(req, res, buf, encoding) {
-	const { x_hub_signature_256 } = req.headers;
+	const received = req.headers["x-hub-signature-256"];
 
-	if (x_hub_signature_256 === undefined) {
+	if (received === undefined) {
 		return; // No signature; nothing to validate.
 	}
 
 	const expected = getSignature(buf);
-	if (expected !== x_hub_signature_256) {
+	if (expected !== received) {
 		throw new Error("Invalid signature.");
 	}
 }

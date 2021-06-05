@@ -55,6 +55,7 @@ router.post("/github", (req, res) => {
 	if (received === undefined) {
 		return writeError(res, 400, "Missing signature.");
 	}
+	if (!req.validSignature) { return; }
 	// If the signature is not undefined, it has been verified
 	// by the middleware at index.js
 

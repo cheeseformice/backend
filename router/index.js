@@ -83,8 +83,11 @@ function verify(req, res, buf, encoding) {
 
 	const expected = getSignature(buf);
 	if (expected !== received) {
+		req.validSignature = false;
+		writeError(res, 400, "Invalid signature.");
 		throw new Error("Invalid signature.");
 	}
+	req.validSignature = true;
 }
 
 // Middleware

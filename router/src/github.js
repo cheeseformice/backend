@@ -58,19 +58,19 @@ router.post("/github", (req, res) => {
 	// If the signature is not undefined, it has been verified
 	// by the middleware at index.js
 
-	const { repository } = req.body;
+	const repository = req.body.repository;
 	const handler = handlers[repository.full_name];
 
 	if (handler === undefined) {
 		return writeError(res, 404, "Unknown repository.");
 	}
 
-	const { x_github_event } = req.headers;
+	const event = req.headers["x-github-event"];
 	res.status(204).send({});
 
-	if (x_github_event === "ping") { return; }
+	if (event === "ping") { return; }
 
-	handler(req, x_github_event, req.body);
+	handler(req, event, req.body);
 });
 
 module.exports = router;

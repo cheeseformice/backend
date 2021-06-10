@@ -15,7 +15,7 @@ handlers["cheeseformice/dressroom-assets"] = (req, event, body) => {
 
 	const { check_run } = body;
 	if (check_run.name !== "Download and publish dressroom assets") { return; }
-	if (check_run.conclussion !== "success") { return; }
+	if (check_run.conclusion !== "success") { return; }
 
 	// New dressroom assets have been published.
 	// Let's notify every dressroom worker!

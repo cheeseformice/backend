@@ -1,4 +1,5 @@
 from collections import namedtuple
+from shared.roles import to_cfm_roles, to_tfm_roles
 
 
 SchemaField = namedtuple(
@@ -39,38 +40,6 @@ def outfits(dress_list):
 	if dress_list == "":
 		return []
 	return dress_list.split("/")
-
-
-def to_role_factory(*enum):
-	def to_roles(bits):
-		if bits == 0:
-			return None
-
-		roles = []
-		for idx, role in enumerate(enum):
-			if bits & (2 ** idx):
-				roles.append(role)
-
-		return roles
-
-	return to_roles
-
-
-to_cfm_roles = to_role_factory(
-	"dev",
-	"admin",
-	"mod",
-	"translator",
-)
-to_tfm_roles = to_role_factory(
-	"admin",
-	"mod",
-	"sentinel",
-	"mapcrew",
-	"module",
-	"funcorp",
-	"fashion",
-)
 
 
 compiled_schemas = {}

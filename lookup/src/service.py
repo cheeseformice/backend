@@ -3,6 +3,8 @@ import asyncio
 
 from shared.pyservice import Service
 
+from shared.roles import to_cfm_roles, to_tfm_roles
+
 from shared.models import roles, player, tribe, member, periods
 from aiomysql.sa import create_engine
 from sqlalchemy import and_, desc, func
@@ -19,36 +21,6 @@ class env:
 service = Service("lookup")
 
 
-def to_role_factory(*enum):
-	def to_roles(bits):
-		if bits == 0:
-			return None
-
-		roles = []
-		for idx, role in enumerate(enum):
-			if bits & (2 ** idx):
-				roles.append(role)
-
-		return roles
-
-	return to_roles
-
-
-to_cfm_roles = to_role_factory(
-	"dev",
-	"admin",
-	"mod",
-	"translator",
-)
-to_tfm_roles = to_role_factory(
-	"admin",
-	"mod",
-	"sentinel",
-	"mapcrew",
-	"module",
-	"funcorp",
-	"fashion",
-)
 rankable_fields = (
 	# (name, db_field)
 	("rounds", "round_played"),

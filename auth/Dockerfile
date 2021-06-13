@@ -26,4 +26,4 @@ RUN chmod +x /start.sh
 
 # Define our command to be run when launching the container
 ENTRYPOINT ["/start.sh"]
-CMD ["pypy3", "-u", "service.py"]
+CMD ["pypy3", "-u", "__init__.py"]

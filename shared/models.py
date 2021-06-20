@@ -1,4 +1,5 @@
 import sqlalchemy as sa
+from sqlalchemy.dialects.mysql import TINYINT
 
 
 metadata = sa.MetaData()
@@ -169,6 +170,43 @@ member_changelog = sa.Table(
 	sa.Column("id_tribe", sa.BigInteger, index=True),
 	sa.Column("id_member", sa.BigInteger, index=True),
 	sa.Column("id_spouse", sa.BigInteger),
+)
+
+
+# Sanctions
+sanctions = sa.Table(
+	"sanctions", metadata,
+	sa.Column("id", sa.Integer, nullable=False, primary_key=True),
+	sa.Column("player", sa.Boolean, nullable=False, default=True, index=True),
+	sa.Column("subject", sa.BigInteger, nullable=False, index=True),
+
+	sa.Column("mod", sa.BigInteger, nullable=False, index=True),
+	sa.Column("type", sa.String(20), nullable=False, default="unknown"),
+	sa.Column("reason", sa.Text, nullable=False, default=""),
+	sa.Column(
+		"date", sa.DateTime,
+		nullable=False, server_default=sa.text("NOW()")
+	),
+
+	# 0 = available, 1 = not available, 2 = open, 3 = closed
+	sa.Column("appeal_state", TININT(2), nullable=False, default="0"),
+
+	sa.Column("canceller", sa.BigInteger, index=True),
+	sa.Column("cancel_reason", sa.Text),
+	sa.Column("cancel_date", sa.DateTime),
+)
+
+appeal_msg = sa.Table(
+	"appeal_msg", metadata,
+	sa.Column("id", sa.Integer, nullable=False, primary_key=True),
+	sa.Column("sanction", sa.Integer, nullable=False),
+	sa.Column("author", sa.BigInteger, nullable=False),
+	sa.Column("system", sa.String(20), nullable=False, default=""),
+	sa.Column("message", sa.Text, nullable=False, default=""),
+	sa.Column(
+		"date", sa.DateTime,
+		nullable=False, server_default=sa.text("NOW()")
+	),
 )
 
 

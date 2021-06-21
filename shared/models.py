@@ -189,7 +189,7 @@ sanctions = sa.Table(
 	),
 
 	# 0 = available, 1 = not available, 2 = open, 3 = closed
-	sa.Column("appeal_state", TININT(2), nullable=False, default="0"),
+	sa.Column("appeal_state", TINYINT(2), nullable=False, default="0"),
 
 	sa.Column("canceller", sa.BigInteger, index=True),
 	sa.Column("cancel_reason", sa.Text),

@@ -1,10 +1,11 @@
 from enum import IntEnum
 from common import service, env
+from datetime import datetime
 
 from shared.models import roles, player, tribe, sanctions, appeal_msg
-from shared.schemas import as_dict, as_dict_list
+from shared.schemas import as_dict, as_dict_list, AppealState, SanctionType
 from sqlalchemy import and_, or_, desc, func
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, insert, update
 
 import aiohttp
 
@@ -16,6 +17,10 @@ class AuthLevel(IntEnum):
 	user = 0
 	mod = 1
 	admin = 2
+
+
+def calc_auth(roles):
+	return AuthLevel.user
 
 
 def get_auth(request):
@@ -136,6 +141,7 @@ def fetch_sanctions_query(fetch_mod_names=False, fetch_many=False):
 		sanctions.c.player,
 		sanctions.c.subject,
 
+		sanctions.c.mod,
 		sanctions.c.type,
 		sanctions.c.reason,
 		sanctions.c.date,
@@ -289,7 +295,8 @@ async def get_sanction(request):
 
 		# Fetch appeal messages (if any!)
 		messages = []
-		if sanction.appeal_state in (2, 3):  # open or closed
+		state = AppealState(sanction.appeal_state)
+		if state in (AppealState.open, AppealState.closed):
 			result = await conn.execute(
 				select(
 					appeal_msg.c.id,
@@ -324,19 +331,220 @@ async def get_sanction(request):
 
 @service.on_request("sanction")
 async def sanction(request):
-	pass
+	auth = get_auth(request)
+
+	if auth is AuthLevel.user:
+		await request.reject("MissingPrivileges")
+		return
+
+	async with service.db.acquire() as conn:
+		if request.target_type == "player":
+			query = fetch_player_query().where(player.c.id == request.target)
+		else:
+			query = fetch_tribe_query().where(tribe.c.id == request.target)
+
+		result = await conn.execute(query)
+		target = await result.first()
+
+		if target is None:
+			await request.reject("TargetNotFound")
+			return
+
+		if request.target_type == "player":
+			target_auth = calc_auth(target.cfm_roles)
+
+			if (auth is target_auth or target_auth is AuthLevel.admin) and \
+				target.id != request.user["user"]:
+				# mod can't sanction other mods or admins
+				# admins can't sanction other admins, but can sanction mods
+				# mods and admins can sanction themselves
+				await request.reject("MissingPrivileges")
+				return
+
+		result = await conn.execute(insert(sanctions).values(
+			player=request.target_type == "player",
+			subject=request.target,
+
+			mod=request.user["user"],
+			type=SanctionType(request.sanction_type).value,
+			reason=request.reason,
+			date=datetime.utcnow(),
+
+			canceller=None,
+			cancel_reason=None,
+			cancel_date=None,
+		).returning(sanctions.c.id))
+		inserted = await result.first()
+
+		await request.send({"id": inserted.id})
 
 
 @service.on_request("cancel-sanction")
 async def cancel_sanction(request):
-	pass
+	auth = get_auth(request)
+
+	if auth is AuthLevel.user:
+		await request.reject("MissingPrivileges")
+		return
+
+	async with service.db.acquire() as conn:
+		result = await conn.execute(
+			fetch_sanctions_query(
+				fetch_mod_names=False,
+				fetch_many=False
+			).where(sanctions.c.id == request.sanction)
+		)
+		sanction = await result.first()
+		if sanction is None:
+			await request.reject("SanctionNotFound")
+			return
+
+		if auth is AuthLevel.mod and sanction.mod != request.user["user"]:
+			# A mod can't cancel other mod's sanctions
+			await request.reject("MissingPrivileges")
+			return
+
+		if sanction.cancel_reason:
+			await request.reject("AlreadyCancelled")
+			return
+
+		if AppealState(sanction.appeal_state) is AppealState.open:
+			new_state = AppealState.closed
+		else:
+			new_state = AppealState.not_available
+
+		await request.send({"state": new_state.name})  # early response
+
+		await conn.execute(
+			update(sanctions)
+			.where(sanctions.c.id == request.sanction)
+			.values(
+				appeal_state=new_state.value,
+
+				canceller=request.user["user"],
+				cancel_reason=request.reason,
+				cancel_date=datetime.utcnow(),
+			)
+		)
+		if new_state is AppealState.closed:
+			# There was an ongoing appeal; so insert a cancellation message
+			await conn.execute(
+				insert(appeal_msg)
+				.values(
+					sanction=request.sanction,
+					author=request.user["user"],
+					system="cancel",
+					message="",
+					date=datetime.utcnow(),
+				)
+			)
 
 
 @service.on_request("post-appeal-msg")
 async def post_appeal_msg(request):
-	pass
+	auth = get_auth(request)
+
+	async with service.db.acquire() as conn:
+		result = await conn.execute(
+			fetch_sanctions_query(
+				fetch_mod_names=False,
+				fetch_many=False
+			).where(sanctions.c.id == request.sanction)
+		)
+		sanction = await result.first()
+		if sanction is None:
+			await request.reject("SanctionNotFound")
+			return
+
+		if auth is AuthLevel.user and not (
+			sanction.player and sanction.subject == request.user["user"]
+		):
+			# The subject is not this user, and they don't have other powers
+			await request.reject("MissingPrivileges")
+			return
+
+		state = AppealState(sanction.appeal_state)
+		if state not in (AppealState.available, AppealState.open):
+			await request.reject("InvalidState")
+			return
+
+		await request.send({})  # early response
+
+		to_insert = []
+		if state is AppealState.available:
+			await conn.execute(
+				update(sanctions)
+				.where(sanctions.c.id == request.sanction)
+				.values(appeal_state=AppealState.open.value)
+			)
+			to_insert.append(dict(
+				sanction=request.sanction,
+				author=request.user["user"],
+				system="open",
+				message="",
+				date=datetime.utcnow(),
+			))
+
+		to_insert.append(dict(
+			sanction=request.sanction,
+			author=request.user["user"],
+			system="",
+			message=request.message,
+			date=datetime.utcnow(),
+		))
+
+		await conn.execute(insert(appeal_msg).values(to_insert))
 
 
 @service.on_request("change-appeal-state")
 async def change_appeal_state(request):
-	pass
+	auth = get_auth(request)
+
+	if auth is AuthLevel.user:
+		await request.reject("MissingPrivileges")
+		return
+
+	new_state = getattr(AppealState, request.state, None)
+	if new_state is None:
+		await request.reject("InvalidState")
+		return
+
+	async with service.db.acquire() as conn:
+		result = await conn.execute(
+			fetch_sanctions_query(
+				fetch_mod_names=False,
+				fetch_many=False
+			).where(sanctions.c.id == request.sanction)
+		)
+		sanction = await result.first()
+		if sanction is None:
+			await request.reject("SanctionNotFound")
+			return
+
+		if auth is AuthLevel.mod and sanction.mod != request.user["user"]:
+			# A mod can't change the state of other mod's sanctions
+			await request.reject("MissingPrivileges")
+			return
+
+		current_state = AppealState(sanction.appeal_state)
+		if current_state is new_state or \
+			new_state in (AppealState.available, AppealState.not_available):
+			await request.reject("InvalidState")
+			return
+
+		await request.send({})  # early response
+
+		await conn.execute(
+			update(sanctions)
+			.where(sanctions.c.id == request.sanction)
+			.values(appeal_state=new_state.value)
+		)
+		await conn.execute(
+			insert(appeal_msg).values(
+				sanction=request.sanction,
+				author=request.user["user"],
+				system=new_state.name,
+				message="",
+				date=datetime.utcnow(),
+			)
+		)

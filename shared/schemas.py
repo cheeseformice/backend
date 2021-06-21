@@ -228,7 +228,8 @@ def _as_dict(schema, row, prefix=None):
 
 	# Process every inner schema too, recursively
 	for name, inner in schema["__inner_schemas"].items():
-		result[name] = _as_dict(inner, row, prefix)
+		# if empty schema is returned, set to None
+		result[name] = _as_dict(inner, row, prefix) or None
 
 	return result
 

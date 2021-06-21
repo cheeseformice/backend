@@ -1,3 +1,5 @@
+from enum import IntEnum
+from datetime import datetime
 from collections import namedtuple
 from shared.roles import to_cfm_roles, to_tfm_roles
 
@@ -24,6 +26,21 @@ Require = namedtuple(
 )
 
 
+class AppealState(IntEnum):
+	available = 0
+	not_available = 1
+	open = 2
+	closed = 3
+
+
+class SanctionType(IntEnum):
+	hacking = 0
+
+
+def as_date(date):
+	return date.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def as_list(obj):
 	if obj == "":
 		return []
@@ -40,6 +57,18 @@ def outfits(dress_list):
 	if dress_list == "":
 		return []
 	return dress_list.split("/")
+
+
+def as_subject_type(is_player):
+	if is_player:
+		return "player"
+	return "tribe"
+
+
+def as_enum_name(enum_class):
+	def wrapped(item):
+		return enum_class(item).name
+	return wrapped
 
 
 compiled_schemas = {}
@@ -138,6 +167,45 @@ schemas = {
 
 		"members": Require("TribeMemberCount"),
 		"stats": Require("AllStats"),
+	},
+
+	"SanctionSubject": {
+		"type": Process(Field("player", True), as_subject_type),
+		# other fields require further logic, done in auth/sanction.py
+	},
+
+	"Sanction": {
+		"mod": Require("BasicPlayer", "mod_"),
+		"type": Process(Field("type", 0), as_enum_name(SanctionType)),
+		"reason": Field("reason", None),
+		"date": Process(Field("date", datetime.utcnow()), as_date),
+	},
+
+	"SanctionCancellation": {
+		"mod": Require("BasicPlayer", "canceller_"),
+		"reason": Field("cancel_reason", None),
+		"date": Process(Field("cancel_date", datetime.utcnow()), as_date),
+	},
+
+	"SanctionAppeal": {
+		"status": Process(Field("appeal_state", 0), as_enum_name(AppealState)),
+		"messages": Field("messages", 0),
+	},
+
+	"SanctionContainer": {
+		"id": Field("id", 0),
+		"subject": Require("SanctionSubject"),
+		"sanction": Require("Sanction"),
+		"cancellation": Require("SanctionCancellation"),
+		"appeal": Require("SanctionAppeal"),
+	},
+
+	"AppealMessage": {
+		"id": Field("id", 0),
+		"author": Require("BasicPlayer", "author_"),
+		"system": Field("system", ""),
+		"message": Field("message", ""),
+		"date": Process(Field("date", datetime.utcnow()), as_date),
 	},
 }
 

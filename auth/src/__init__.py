@@ -5,6 +5,7 @@ from common import service
 # Initialize modules
 import privacy  # noqa
 import roles  # noqa
+import sanction  # noqa
 import session  # noqa
 import validation  # noqa
 

@@ -37,14 +37,14 @@ overall_formula = (
 )
 overall_scores = {
 	"alltime": overall_formula.format(
-		stats=35.564,
+		stats=2723.477,
 		shaman=24.956,
 		survivor=1.580,
 		racing=0.861,
 		defilante=2.851,
 	),
 	"daily": overall_formula.format(
-		stats=0.494,
+		stats=3.1,
 		shaman=0.311,
 		survivor=0.056,
 		racing=0.074,

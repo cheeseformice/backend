@@ -29,11 +29,11 @@ formulas = {
 
 
 overall_formula = (
-	"(`score_stats` / {stats} + "
-	"`score_shaman` / {shaman} + "
-	"`score_survivor` / {survivor} + "
-	"`score_racing` / {racing} + "
-	"`score_defilante` / {defilante})"
+	"(IFNULL(`score_stats` / {stats}, 0) + "
+	"IFNULL(`score_shaman` / {shaman}, 0) + "
+	"IFNULL(`score_survivor` / {survivor}, 0) + "
+	"IFNULL(`score_racing` / {racing}, 0) + "
+	"IFNULL(`score_defilante` / {defilante}, 0))"
 )
 overall_scores = {
 	"alltime": overall_formula.format(

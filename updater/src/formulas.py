@@ -1,8 +1,8 @@
 # Formulas for the composite scores
 formulas = {
 	"score_stats": (
-		"(`cheese_gathered` + `first` * 3) "
-		"/ POWER(GREATEST(`round_played`, 1), 0.25)"
+		"(POWER(`cheese_gathered`, 2) + POWER(`first`, 2) "
+		"+ POWER(`saved_mice`, 2)) / `round_played`"
 	),
 	"score_shaman": (
 		"(`shaman_cheese` * 0.05 + `{0}` * 0.2 "

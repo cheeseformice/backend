@@ -593,9 +593,8 @@ class RunnerPool:
 
 		await inte.execute(
 			"INSERT INTO `{0}_changelog` (`{2}`) \
-			SELECT `o`.* \
-			FROM `{0}_new` as `n` \
-			INNER JOIN `{0}` as `o` ON `n`.`{1}` = `o`.`{1}`"
+			SELECT `n`.* \
+			FROM `{0}_new` as `n`"
 			.format(
 				table.name,
 				table.primary,

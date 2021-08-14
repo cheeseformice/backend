@@ -54,6 +54,8 @@ class LogContainer:
 
 			logs[name] = log_info
 
+		print(self.names, bin(mask), logs)
+
 		return logs
 
 

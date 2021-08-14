@@ -38,6 +38,7 @@ async def player_logs(request):
 			rows.extend(await fetch_member_logs(conn, user, offset, limit))
 
 	result, used_dates, stores = read_history(logs, rows)
+	print(result, stores)
 
 	response = as_dict("BasicPlayer", player_info)
 	response["dates"] = fix_dates(used_dates, stores)

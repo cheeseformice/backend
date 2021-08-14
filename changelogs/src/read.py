@@ -121,6 +121,6 @@ def read_history(logs_info: Dict[str, LogInfo], rows: list):
 
 		if len(conversions) == 1:
 			# If this container just holds a single field, just return that
-			log_result = log_result[conversions[0][0]]
+			logs[name] = store
 
 	return logs, used_dates, log_stores

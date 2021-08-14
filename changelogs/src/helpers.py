@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, Tuple
 from logs import LogInfo
 
@@ -27,6 +28,10 @@ def check_needs(logs: Dict[str, LogInfo]) -> Tuple[bool]:
 	return needs_player, needs_member
 
 
+def format_date(date: datetime) -> str:
+	return date.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def fix_dates(used_dates: set, stores: list) -> list:
 	date_index = {}
 	used_dates = list(used_dates)
@@ -38,4 +43,4 @@ def fix_dates(used_dates: set, stores: list) -> list:
 		for entry in store:
 			entry[0] = date_index[entry[0]]
 
-	return used_dates
+	return list(map(format_date, used_dates))

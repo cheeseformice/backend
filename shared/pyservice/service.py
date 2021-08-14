@@ -48,6 +48,8 @@ class Service:
 		self.loop = loop or asyncio.get_event_loop()
 		self.name = name
 
+		self.did_boot = False
+
 		# By default, set to worker 0
 		self.worker = 0
 		self.my_channel = "service:{}@{}".format(name, 0)
@@ -134,7 +136,7 @@ class Service:
 		coro = method(*args, **kwargs)
 		if inspect.isawaitable(coro):
 			# The event returned a task, schedule it
-			self.loop.create_task(coro)
+			return self.loop.create_task(coro)
 
 	def select_worker(self, target):
 		"""Uses round robin to select a worker of the given target."""
@@ -272,6 +274,11 @@ class Service:
 			if msg["type"] == "request":  # Received a request
 				request = Request(self, msg)
 
+				if not self.did_boot:
+					# Service didn't finish booting yet.
+					self.loop.create_task(request.end())
+					return
+
 				handler = self.request_handlers.get(msg["request_type"])
 				if handler is not None:
 					# There is a handler registered
@@ -367,4 +374,5 @@ class Service:
 		await self.redis.subscribe(self.my_channel)
 		await self.redis.subscribe("service:healthcheck")
 
-		self.dispatch("boot", self)
+		await self.dispatch("boot", self)
+		self.did_boot = True

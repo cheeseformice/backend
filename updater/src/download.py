@@ -592,12 +592,11 @@ class RunnerPool:
 		logging.debug("[{}] initiate changelog save".format(table.name))
 
 		await inte.execute(
-			"INSERT INTO `{0}_changelog` (`{2}`) \
+			"INSERT INTO `{0}_changelog` (`{1}`) \
 			SELECT `n`.* \
 			FROM `{0}_new` as `n`"
 			.format(
 				table.name,
-				table.primary,
 				"`,`".join(table.write_columns)
 			)
 		)

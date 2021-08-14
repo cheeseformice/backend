@@ -7,7 +7,7 @@ class Fields:
 	special: bool
 	conversions: Optional[Tuple[Tuple[str]]]
 
-	def __init__(self, *conversions, special: bool=False) -> None:
+	def __init__(self, *conversions, special: bool = False) -> None:
 		self.special = special
 
 		if not special and conversions:

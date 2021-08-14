@@ -45,6 +45,7 @@ def schema_log(info: Dict[str, LogInfo], rows: list):
 	store.reverse()
 	return store, used_dates
 
+
 @special_case("badges")
 @special_case("titles")
 def list_log(info: Dict[str, LogInfo], rows: list):

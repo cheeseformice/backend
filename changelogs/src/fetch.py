@@ -1,5 +1,5 @@
 from shared.models import roles, player, tribe, player_privacy, \
-	player_changelog, member_changelog, tribe_changelog
+	player_changelog, member_changelog
 from sqlalchemy import desc
 from sqlalchemy.sql import select
 

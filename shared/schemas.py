@@ -73,7 +73,7 @@ schemas = {
 
 		"experience": Field("experience", 0),
 	},
-	"NormalStats": {
+	"MouseStats": {
 		"rounds": Field("round_played", 0),
 		"cheese": Field("cheese_gathered", 0),
 		"first": Field("first", 0),
@@ -107,7 +107,7 @@ schemas = {
 
 	"AllStats": {
 		"shaman": Require("ShamanStats"),
-		"normal": Require("NormalStats"),
+		"mouse": Require("MouseStats"),
 		"survivor": Require("SurvivorStats", "survivor_"),
 		"racing": Require("RacingStats", "racing_"),
 		"defilante": Require("DefilanteStats", "defilante_"),

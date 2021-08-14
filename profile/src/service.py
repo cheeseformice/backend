@@ -152,7 +152,7 @@ async def fetch_period(conn, request, table, row):
 		shaman_schema = ("Tribe" if is_tribe else "") + "ShamanStats"
 		for name, schema, prefix in (
 			("shaman", shaman_schema, None),
-			("normal", "NormalStats", None),
+			("mouse", "MouseStats", None),
 			("survivor", "SurvivorStats", "survivor_"),
 			("racing", "RacingStats", "racing_"),
 			("defilante", "DefilanteStats", "defilante_"),
@@ -161,9 +161,7 @@ async def fetch_period(conn, request, table, row):
 				is_public = True
 			else:
 				is_public = row[name] is None or row[name]
-			period[name] = store = {
-				"public": is_public
-			}
+			period[name] = store = {}
 
 			if is_public:
 				store.update(as_dict(schema, profile_stats, prefix=prefix))

@@ -15,7 +15,7 @@ privacy_fields = (
 	("badges", True),
 	("titles", True),
 	("shaman", True),
-	("normal", True),
+	("mouse", True),
 	("survivor", True),
 	("racing", True),
 	("defilante", True),

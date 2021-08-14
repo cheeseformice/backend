@@ -24,7 +24,7 @@ CREATE TABLE `player_privacy` (
   `badges` boolean NOT NULL DEFAULT '1',
   `titles` boolean NOT NULL DEFAULT '1',
   `shaman` boolean NOT NULL DEFAULT '1',
-  `normal` boolean NOT NULL DEFAULT '1',
+  `mouse` boolean NOT NULL DEFAULT '1',
   `survivor` boolean NOT NULL DEFAULT '1',
   `racing` boolean NOT NULL DEFAULT '1',
   `defilante` boolean NOT NULL DEFAULT '1',

@@ -87,11 +87,11 @@ def read_history(logs_info: Dict[str, LogInfo], rows: list):
 	rows_len = len(rows)
 	for name, info in logs_info.items():
 		if info.fields.special:
-			log_result, dates = special_cases[name](info, rows)
+			store, dates = special_cases[name](info, rows)
 
-			logs[name] = log_result
+			logs[name] = store
 			used_dates = used_dates.union(dates)
-			log_stores.append(log_result)
+			log_stores.append(store)
 			continue
 
 		conversions = info.fields.conversions

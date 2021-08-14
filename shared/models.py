@@ -48,7 +48,7 @@ player_privacy = sa.Table(
 	sa.Column("badges", sa.Boolean, nullable=False, default=True),
 	sa.Column("titles", sa.Boolean, nullable=False, default=True),
 	sa.Column("shaman", sa.Boolean, nullable=False, default=True),
-	sa.Column("normal", sa.Boolean, nullable=False, default=True),
+	sa.Column("mouse", sa.Boolean, nullable=False, default=True),
 	sa.Column("survivor", sa.Boolean, nullable=False, default=True),
 	sa.Column("racing", sa.Boolean, nullable=False, default=True),
 	sa.Column("defilante", sa.Boolean, nullable=False, default=True),

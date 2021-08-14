@@ -10,11 +10,16 @@ def first_item(item):
 
 
 def filter_private(logs: Dict[str, LogInfo], settings) -> Dict[str, LogInfo]:
-	return {
-		name: log_info
-		for name, log_info in logs.items()
-		if getattr(settings, name, log_info.public)
-	}
+	filtered = {}
+	for name, log_info in logs.items():
+		public = settings[name]
+		if public is None:  # no value set
+			public = log_info.public  # use default
+
+		if public:
+			filtered[name] = log_info
+
+	return filtered
 
 
 def check_needs(logs: Dict[str, LogInfo]) -> Tuple[bool]:

@@ -240,7 +240,7 @@ async def profile_player(request):
 		period = await fetch_period(conn, request, player_changelog, row)
 
 	profile = as_dict("PlayerProfile", row)
-	profile["position"] = None # position.position
+	profile["position"] = None  # position.position
 	if row.sm_id is None:
 		profile["soulmate"] = None
 	if row.tribe_id is None:

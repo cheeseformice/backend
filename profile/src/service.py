@@ -226,21 +226,21 @@ async def profile_player(request):
 			)
 			return
 
-		result = await conn.execute(
-			select(func.count().label("position"))
-			.select_from(player)
-			.where(
-				player.c.score_overall.is_not(None)
-				if row.score_overall is None else
-				player.c.score_overall >= row.score_overall
-			)
-		)
-		position = await result.first()
+		# result = await conn.execute(
+		# 	select(func.count().label("position"))
+		# 	.select_from(player)
+		# 	.where(
+		# 		player.c.score_overall.is_not(None)
+		# 		if row.score_overall is None else
+		# 		player.c.score_overall >= row.score_overall
+		# 	)
+		# )
+		# position = await result.first()
 
 		period = await fetch_period(conn, request, player_changelog, row)
 
 	profile = as_dict("PlayerProfile", row)
-	profile["position"] = position.position
+	profile["position"] = None # position.position
 	if row.sm_id is None:
 		profile["soulmate"] = None
 	if row.tribe_id is None:

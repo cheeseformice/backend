@@ -1,4 +1,5 @@
 import os
+import aiohttp
 import asyncio
 import concurrent.futures as futures
 
@@ -13,6 +14,7 @@ class env:
 	cfm_user = os.getenv("DB_USER", "test")
 	cfm_pass = os.getenv("DB_PASS", "test")
 	cfm_db = os.getenv("DB", "api_data")
+	ticket_api = os.getenv("TICKET_API", "http://localhost:8080/auth")
 	max_workers = int(os.getenv("HASH_WORKERS", "0")) or None
 
 
@@ -25,6 +27,7 @@ async def on_boot(new):
 	global service
 	service = new
 
+	service.http = await aiohttp.ClientSession().__aenter__()
 	service.db = await create_engine(
 		host=env.cfm_ip, port=3306,
 		user=env.cfm_user, password=env.cfm_pass,
@@ -36,6 +39,11 @@ async def on_boot(new):
 	)
 
 	service.loop.create_task(ping_db())
+
+
+@service.event
+async def on_stop():
+	await service.http.__aexit__(None, None, None)
 
 
 async def ping_db():

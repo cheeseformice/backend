@@ -48,7 +48,8 @@ class Service:
 		self.loop = loop or asyncio.get_event_loop()
 		self.name = name
 
-		self.did_boot = False
+		self.running = False
+		self.open_requests = 0
 
 		# By default, set to worker 0
 		self.worker = 0
@@ -213,6 +214,10 @@ class Service:
 			if request.alive:
 				await request.end()
 
+		finally:
+			if request.alive:
+				await request.finish()
+
 	async def request(
 		self,
 		target, request,
@@ -274,8 +279,8 @@ class Service:
 			if msg["type"] == "request":  # Received a request
 				request = Request(self, msg)
 
-				if not self.did_boot:
-					# Service didn't finish booting yet.
+				if not self.running:
+					# Service doesn't accept requests right now.
 					self.loop.create_task(request.end())
 					return
 
@@ -327,8 +332,17 @@ class Service:
 					elif worker not in self.other_workers[name]:
 						self.other_workers[name].append(worker)
 
-	def stop(self):
+	async def stop_coro(self):
+		self.running = False
+
+		while self.open_requests > 0:
+			await asyncio.sleep(.5)
+
+		await self.dispatch("stop")
 		self.loop.stop()
+
+	def stop(self):
+		self.loop.create_task(self.stop_coro())
 
 	def run(self, worker=None, workers=1):
 		if workers > 1:
@@ -375,4 +389,4 @@ class Service:
 		await self.redis.subscribe("service:healthcheck")
 
 		await self.dispatch("boot", self)
-		self.did_boot = True
+		self.running = True

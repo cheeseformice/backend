@@ -6,7 +6,6 @@ const {
 	service,
 	SESSION_KEY,
 	REFRESH_KEY,
-	VALIDATE_KEY,
 	assertUnauthorized,
 	writeError,
 	handleServiceError,
@@ -60,6 +59,11 @@ router.post("/session", (req, res) => {
 		request.password = req.body.password;
 		request.remind = remind;
 
+	} else if (typeof req.body.ticket == "string") {
+		// Coming from transformice's ingame verification system
+		request.uses = "ticket";
+		request.ticket = req.body.ticket;
+
 	} else {
 		// tf are they trying to use lol
 		return writeError(res, 400);
@@ -80,6 +84,10 @@ router.post("/session", (req, res) => {
 
 			// Everything is OK
 			let response = {};
+
+			if (typeof req.body.ticket == "string") {
+				response.hasPassword = result.content.has_password;
+			}
 
 			let refresh = result.content.refresh;
 			let session = result.content.session;

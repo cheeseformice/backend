@@ -1,3 +1,4 @@
 aiomysql
 sqlalchemy
 argon2-cffi
+aiohttp

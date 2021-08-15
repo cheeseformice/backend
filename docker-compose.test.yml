@@ -75,6 +75,7 @@ services:
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
+      - TICKET_API
       - HASH_WORKERS=1
       - WORKERS=1
 

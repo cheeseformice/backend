@@ -1,4 +1,4 @@
-from common import service, ph
+from common import service, ph, env
 
 from shared.roles import to_cfm_roles, to_tfm_roles
 from shared.models import roles, auth, player
@@ -57,7 +57,8 @@ async def new_session(request):
 			)
 			row = await result.first()
 
-		if row is None:  # User isn't registered
+		if row is None or row.password == "":
+			# User hasn't logged in or didn't set up a password
 			return await request.reject(
 				"InvalidCredentials",
 				"Invalid username or password."
@@ -86,6 +87,65 @@ async def new_session(request):
 				"refresh": row.refresh,
 				"duration": "180d" if request.remind else "1d"
 			}
+		}
+
+	elif request.uses == "ticket":
+		async with service.http.get(
+			f"{env.ticket_api}"
+			f"?ticket={request.ticket}"
+		) as resp:
+			try:
+				user = await resp.json()
+			except Exception:
+				return await request.reject(
+					"InvalidCredentials",
+					"Invalid ticket."
+				)
+
+		async with service.db.acquire() as conn:
+			result = await conn.execute(
+				select(
+					player.c.id,
+					auth.c.refresh,
+
+					roles.c.cfm.label("cfm_roles"),
+					roles.c.tfm.label("tfm_roles"),
+				)
+				.select_from(
+					player
+					.join(auth, player.c.id == auth.c.id)
+					.outerjoin(roles, roles.c.id == auth.c.id)
+				)
+				.where(player.c.id == user["id"])
+			)
+			row = await result.first()
+
+			if row is None:
+				return await request.reject(
+					"InvalidCredentials",
+					"Account has been created less than 24 hours ago."
+				)
+
+			await request.open_stream()
+			if row.refresh is None:
+				# First time logging in
+				await conn.execute(
+					auth.insert()
+					.values(
+						id=row.id,
+						password="",
+						discord=None
+					)
+				)
+
+		refresh = row.refresh or 0
+		response = {
+			"refresh": {
+				"user": row.id,
+				"refresh": refresh,
+				"duration": "1d"
+			},
+			"has_password": refresh > 0
 		}
 
 	response["success"] = True

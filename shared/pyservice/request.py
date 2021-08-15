@@ -1,6 +1,7 @@
 class Request:
 	def __init__(self, service, msg):
 		self.service = service
+		self.service.open_requests += 1
 
 		self.source = msg["source"]
 		self.worker = msg["worker"]
@@ -17,6 +18,7 @@ class Request:
 
 	def finish(self):
 		self.alive = False
+		self.service.open_requests -= 1
 		del self.service
 		del self.source, self.worker
 		del self.request, self.type, self.streaming

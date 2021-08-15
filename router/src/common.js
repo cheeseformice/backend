@@ -9,11 +9,9 @@ const service = new Service(
 
 const SESSION_KEY = process.env.SESSION_KEY || "some long ass string lol";
 const REFRESH_KEY = process.env.REFRESH_KEY || "another long ass string lol";
-const VALIDATE_KEY = process.env.VALIDATE_KEY || "one more long ass string lol";
 
 if (!process.env.SESSION_KEY ||
-	!process.env.REFRESH_KEY ||
-	!process.env.VALIDATE_KEY) {
+	!process.env.REFRESH_KEY) {
 	console.warn(
 		"One or many of the required JWT aren't defined. Using default."
 	);

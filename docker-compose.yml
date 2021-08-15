@@ -187,7 +187,6 @@ services:
       - INFRA_PING_TIMEOUT
       - SESSION_KEY
       - REFRESH_KEY
-      - VALIDATE_KEY
       - GITHUB_SECRET
       - WORKERS=2
 
@@ -200,22 +199,6 @@ services:
       - frontend
     ports:
       - "80:80"
-
-  validation:
-    build: ./validation
-    restart: always
-    volumes:
-      - "./shared:/src/shared"
-      - "redis-socket:/tmp/docker"
-    depends_on:
-      - redis
-    networks:
-      - infrastructure
-    environment:
-      - INFRA_ADDR
-      - INFRA_RECONNECT
-      - FORUM_USER
-      - FORUM_PASS
 
 volumes:
   db-data:

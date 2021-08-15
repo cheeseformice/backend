@@ -11,7 +11,6 @@ function getChildENV(i) {
 		SERVICE_WORKER_ID: i,
 		SESSION_KEY: process.env.SESSION_KEY,
 		REFRESH_KEY: process.env.REFRESH_KEY,
-		VALIDATE_KEY: process.env.VALIDATE_KEY,
 		INFRA_ADDR: process.env.INFRA_ADDR,
 		INFRA_PING_DELAY: process.env.INFRA_PING_DELAY,
 		INFRA_PING_TIMEOUT: process.env.INFRA_PING_TIMEOUT,

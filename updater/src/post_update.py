@@ -102,9 +102,9 @@ async def _write_periodic_rank(tbl, period, days, inte):
 		FROM \
 			`{source}` as `n` \
 			INNER JOIN ( \
-				SELECT min(`log_id`) as `boundary`, `id` \
+				SELECT max(`log_id`) as `boundary`, `id` \
 				FROM `{log}` \
-				WHERE `log_date` >= {start_from} \
+				WHERE `log_date` < {start_from} \
 				GROUP BY `id` \
 			) as `b` ON `b`.`id` = `n`.`id` \
 			INNER JOIN `{log}` as `o` \

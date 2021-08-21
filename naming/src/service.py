@@ -66,14 +66,21 @@ async def write_roles(new_roles):
 		old_roles = await result.fetchall()
 
 		may_delete = False
+		checked = set()
 		modified = {}
 		for row in old_roles:
+			checked.add(row.id)
+
 			if row.id not in new_roles:
 				modified[row.id] = 0
 				may_delete = True
 
 			elif new_roles[row.id] != row.tfm:
 				modified[row.id] = new_roles[row.id]
+
+		for user, new_role in new_roles.items():
+			if user not in checked:
+				modified[user] = new_role
 
 		if not modified:
 			return

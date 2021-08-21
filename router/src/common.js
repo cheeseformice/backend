@@ -234,7 +234,6 @@ module.exports = {
 
 	SESSION_KEY: SESSION_KEY,
 	REFRESH_KEY: REFRESH_KEY,
-	VALIDATE_KEY: VALIDATE_KEY,
 	writeError: writeError,
 	handleServiceError: handleServiceError,
 	handleBasicServiceResult: handleBasicServiceResult,

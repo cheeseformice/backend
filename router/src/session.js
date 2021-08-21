@@ -74,6 +74,31 @@ router.put("/users/:name/roles", (req, res) => {
 	);
 });
 
+router.post("/@me/password", (req, res) => {
+	// Someone wants to change their password
+	const auth = assertAuthorization(req, res);
+	if (!auth) { return; }
+
+	const { password } = req.body;
+	if (!password) {
+		writeError(res, 400, "Missing password");
+		return;
+	}
+
+	service.request(
+		"auth", "set-password", { auth, password },
+		(result) => {
+			if (result.type == "end") {
+				// Everything is ok
+				res.status(204).send();
+			} else if (!!result.err) {
+				// Something went wrong
+				handleServiceError(res, result);
+			}
+		}
+	);
+})
+
 router.get("/@me/privacy", (req, res) => {
 	// Someone wants to know their current privacy settings
 	const auth = assertAuthorization(req, res);

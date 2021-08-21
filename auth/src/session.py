@@ -1,12 +1,21 @@
-from common import service, ph, env
+from common import service, env
+
+from argon2 import PasswordHasher
 
 from shared.roles import to_cfm_roles, to_tfm_roles
 from shared.models import roles, auth, player
 from sqlalchemy.sql import select
 
 
+ph = PasswordHasher()
+
+
 def verify_password(password, hashed):
 	return ph.verify(hashed, password)
+
+
+def hash_password(password):
+	return ph.hash(password)
 
 
 @service.on_request("new-session")
@@ -155,4 +164,26 @@ async def new_session(request):
 		"tfm_roles": to_tfm_roles(row.tfm_roles),
 	}
 	await request.send(response)
+	await request.end()
+
+
+@service.on_request("set-password")
+async def set_password(request):
+	await request.open_stream()
+
+	password = await service.loop.run_in_executor(
+		service.process_pool,
+		hash_password, request.password
+	)
+
+	async with service.db.acquire() as conn:
+		await conn.execute(
+			auth.update()
+			.where(auth.c.id == request.auth["user"])
+			.values(
+				password=password,
+				refresh=auth.c.refresh + 1
+			)
+		)
+
 	await request.end()

@@ -12,7 +12,6 @@ const {
 } = require("./common");
 
 const router = express.Router();
-const users = express.Router();
 
 router.post("/session", (req, res) => {
 	// Someone wants to create a new session

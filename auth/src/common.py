@@ -3,8 +3,6 @@ import aiohttp
 import asyncio
 import concurrent.futures as futures
 
-from argon2 import PasswordHasher
-
 from shared.pyservice import Service
 from aiomysql.sa import create_engine
 
@@ -19,7 +17,6 @@ class env:
 
 
 service = Service("auth")
-ph = PasswordHasher()
 
 
 @service.event

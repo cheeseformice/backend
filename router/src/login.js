@@ -85,7 +85,7 @@ router.post("/session", (req, res) => {
 			let response = {};
 
 			if (typeof req.body.ticket == "string") {
-				response.hasPassword = result.content.has_password;
+				response.has_password = result.content.has_password;
 			}
 
 			let refresh = result.content.refresh;

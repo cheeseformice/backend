@@ -9,6 +9,7 @@ const {
 	assertUnauthorized,
 	writeError,
 	handleServiceError,
+	normalizeName,
 } = require("./common");
 const { checkRateLimit } = require("./ratelimits");
 
@@ -58,7 +59,7 @@ router.post("/session", async (req, res) => {
 		}
 
 		request.uses = "credentials";
-		request.user = req.body.user;
+		request.user = normalizeName(req.body.user);
 		request.password = req.body.password;
 		request.remind = remind;
 

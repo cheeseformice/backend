@@ -185,31 +185,6 @@ function normalizeName(name) {
 	return name.includes("#") ? name : `${name}#0000`;
 }
 
-function checkRateLimit(bucket, maxUses, expiration) {
-	return new Promise((resolve, reject) => {
-		service.redis.get(bucket, (err, uses) => {
-			if (!!err) {
-				reject(err);
-				return;
-			}
-
-			if (!!uses && uses >= maxUses) {
-				resolve(false);
-				return;
-			}
-
-			if (!uses) {
-				service.redis.set(bucket, 1);
-				service.redis.expire(bucket, expiration);
-			} else {
-				service.redis.incr(bucket);
-			}
-
-			resolve(true);
-		});
-	});
-}
-
 module.exports = {
 	service: service,
 
@@ -242,5 +217,4 @@ module.exports = {
 	assertAuthorization: assertAuthorization,
 	assertUnauthorized: assertUnauthorized,
 	normalizeName: normalizeName,
-	checkRateLimit: checkRateLimit,
 };

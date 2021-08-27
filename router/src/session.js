@@ -10,6 +10,7 @@ const {
 	handleBasicServiceResult,
 	cfmRoles,
 } = require("./common");
+const { checkRateLimit } = require("./ratelimits");
 
 const router = express.Router();
 
@@ -74,7 +75,9 @@ router.put("/users/:name/roles", (req, res) => {
 	);
 });
 
-router.post("/@me/password", (req, res) => {
+router.post("/@me/password", async (req, res) => {
+	if (!await checkRateLimit(req, res, "password")) { return; }
+
 	// Someone wants to change their password
 	const auth = assertAuthorization(req, res);
 	if (!auth) { return; }

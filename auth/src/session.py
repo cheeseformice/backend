@@ -1,6 +1,6 @@
 from common import service, env
 
-from argon2 import PasswordHasher
+from argon2 import PasswordHasher, exceptions
 
 from shared.roles import to_cfm_roles, to_tfm_roles
 from shared.models import roles, auth, player
@@ -13,7 +13,7 @@ ph = PasswordHasher()
 def verify_password(password, hashed):
 	try:
 		return ph.verify(hashed, password)
-	except argon2.exceptions.VerifyMismatchError:
+	except exceptions.VerifyMismatchError:
 		return False
 
 

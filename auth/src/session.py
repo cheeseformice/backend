@@ -11,7 +11,10 @@ ph = PasswordHasher()
 
 
 def verify_password(password, hashed):
-	return ph.verify(hashed, password)
+	try:
+		return ph.verify(hashed, password)
+	except argon2.exceptions.VerifyMismatchError:
+		return False
 
 
 def hash_password(password):

@@ -10,10 +10,14 @@ const {
 	writeError,
 	handleServiceError,
 } = require("./common");
+const { checkRateLimit } = require("./ratelimits");
 
 const router = express.Router();
 
-router.post("/session", (req, res) => {
+router.post("/session", async (req, res) => {
+	const result = await checkRateLimit(req, res, "session");
+	if (!result) { return; }
+
 	// Someone wants to create a new session
 	const success = assertUnauthorized(req, res);
 	if (!success) { return; }

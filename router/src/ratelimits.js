@@ -1,10 +1,16 @@
-const { writeError, service } = require("./common");
+const { writeError, service, checkAuthorization } = require("./common");
 
 const buckets = {
   session: {
     paramType: "ip",
     maxUses: 2,
     expires: 5 * 60,
+  },
+
+  password: {
+    paramType: "user",
+    maxUses: 3,
+    expires: 10 * 60,
   }
 }
 
@@ -20,6 +26,13 @@ const checkRateLimit = (req, res, bucketName, param) => {
     if (bucket.paramType === "ip") {
       const { x_real_ip } = req.headers;
       param = x_real_ip;
+    } else if (bucket.paramType === "user") {
+      const user = checkAuthorization(req, res);
+      if (!user) {
+        resolve(false);
+        return;
+      }
+      param = user.user; // user id
     }
 
 		service.redis.get(`rate:${bucket.paramType}:${bucketName}:${param}`, (err, uses) => {

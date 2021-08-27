@@ -89,6 +89,10 @@ function getPagination(req) {
 }
 
 function checkAuthorization(req, res) {
+	if (req.cfmAuthorization) {
+		return req.cfmAuthorization;
+	}
+
 	const { authorization } = req.headers;
 
 	if (!authorization) { return null; }
@@ -101,7 +105,8 @@ function checkAuthorization(req, res) {
 	const [bearer, token] = authorization.split(" ", 2);
 
 	try {
-		return jwt.verify(token, SESSION_KEY);
+		req.cfmAuthorization = jwt.verify(token, SESSION_KEY);
+		return req.cfmAuthorization;
 	} catch(err) {
 		switch (err.name) {
 			case "TokenExpiredError":

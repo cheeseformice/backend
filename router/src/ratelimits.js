@@ -24,7 +24,9 @@ const checkRateLimit = (req, res, bucketName, param) => {
 
 		service.redis.get(`rate:${bucket.paramType}:${bucketName}:${param}`, (err, uses) => {
 			if (!!err) {
-				reject(err);
+        console.error(err);
+        writeError(res, 500);
+        reject(err);
 				return;
 			}
 

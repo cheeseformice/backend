@@ -107,7 +107,7 @@ let modules = [
 	// [hasPrefix, moduleName],
 	[true, "dressroom"],
 	[false, "healthcheck"],
-	// [false, "login"],
+	[false, "login"],
 	[false, "lookup"],
 	[false, "profile"],
 	[false, "session"],

@@ -142,30 +142,14 @@ int cmd_GETPAGE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return REDISMODULE_OK;
 
   int page = 0;
-  int* ptr = statsStart[statIndex];
+  int* ptr = statsStart[statIndex] + startRow - 1;
   int* end = statsEnd[statIndex];
 
-  for (size_t layer = indexLayers - 1; layer >= 0; layer--) {
-    const int pageIncrement = perIndex * (layer + 1);
-    const int ptrIncrement = max(perIndex * layer, 1);
-
-    while (ptr < end) {
-      page += pageIncrement;
-
-      if (page > startRow) {
-        if (layer == 0)
-          return RedisModule_ReplyWithLongLong(ctx, *ptr);
-
-        page -= pageIncrement;
-        break;
-      }
-
-      ptr += ptrIncrement;
-    }
-
-    if (!(ptr < end))
-      return RedisModule_ReplyWithError(ctx, "ERR page too far");
+  if (ptr >= end) {
+    return RedisModule_ReplyWithError(ctx, "ERR page too far");
   }
+
+  return RedisModule_ReplyWithLongLong(ctx, *ptr);
 }
 
 MYSQL* connectToMySQL(void) {

@@ -40,7 +40,7 @@ const char* validStats[statsLength] = {
 int** statsStart;
 int** statsEnd;
 
-void dprintf(const char* fmt, ...) {
+void printfd(const char* fmt, ...) {
   time_t raw;
   time(&raw);
   struct tm* info = localtime(&raw);
@@ -199,7 +199,7 @@ void freeIndices(void) {
 }
 
 bool generateIndices(MYSQL *con) {
-  dprintf("generating indices\n");
+  printfd("generating indices\n");
 
   // on success, allocates statsStart, statsEnd, all children arrays and returns true
   // on failure, prints error and returns false. none of the arrays are allocated after that
@@ -245,7 +245,7 @@ bool generateIndices(MYSQL *con) {
     statsEnd[i] = statsStart[i] + count;
   }
   setupIndices = true;
-  dprintf("memory allocated\n");
+  printfd("memory allocated\n");
 
   // get & store all the numbers
   for (int i = 0; i < statsLength; i++) {
@@ -286,7 +286,7 @@ bool generateIndices(MYSQL *con) {
       goto error;
     }
 
-    dprintf("generating indices for %s\n", name);
+    printfd("generating indices for %s\n", name);
     // fetch all rows
     int* ptr = statsStart[i];
     while (mysql_stmt_fetch(stmt) == 0) {
@@ -308,7 +308,7 @@ nextStat: ;
     if (stmt_errno != 0) {
       stmtError(stmt);
     } else {
-      dprintf("index generation for %s successful\n", name);
+      printfd("index generation for %s successful\n", name);
     }
 
     // before going to the next stat, we need to cleanup
@@ -353,19 +353,19 @@ void *indexGenerator(void *arg) {
       seconds += (59 - timeinfo->tm_min) * 60;
       seconds += 60 - timeinfo->tm_sec;
 
-      dprintf("sleeping for %d seconds\n", seconds);
+      printfd("sleeping for %d seconds\n", seconds);
 
       // sleep until 12:00:00 (today or tomorrow)
       sleep(seconds);
 
-      dprintf("wake up\n");
+      printfd("wake up\n");
 
       bool wasAvailable = available == 1;
       available = 0;
       sleep(5); // let other threads finish using indices before modifying them
 
       if (wasAvailable) {
-        dprintf("free indices after wakeup\n");
+        printfd("free indices after wakeup\n");
         freeIndices();
       }
     }
@@ -385,11 +385,11 @@ void *indexGenerator(void *arg) {
 int RedisModule_OnUnload(RedisModuleCtx *ctx) {
   REDISMODULE_NOT_USED(ctx);
 
-  dprintf("unloading module\n");
+  printfd("unloading module\n");
 
   pthread_cancel(threadId);
   if (available == 1) {
-    dprintf("free indices on unload\n");
+    printfd("free indices on unload\n");
     freeIndices();
   }
   mysql_library_end();

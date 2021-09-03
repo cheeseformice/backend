@@ -50,6 +50,7 @@ services:
     ]
     networks:
       - infrastructure
+      - database
     volumes:
       - "test-redis-data:/data"
       - "./redis/redis.conf:/etc/redis/redis.conf"

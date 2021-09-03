@@ -37,6 +37,7 @@ services:
     ]
     networks:
       - infrastructure
+      - database
     volumes:
       - "redis-data:/data"
       - "./redis/redis.conf:/etc/redis/redis.conf"

@@ -183,7 +183,7 @@ void freeIndices(void) {
 }
 
 bool generateIndices(MYSQL *con) {
-  print("generating indices\n");
+  printf("generating indices\n");
 
   // on success, allocates statsStart, statsEnd, all children arrays and returns true
   // on failure, prints error and returns false. none of the arrays are allocated after that
@@ -273,7 +273,7 @@ bool generateIndices(MYSQL *con) {
     printf("generating indices for %s\n", name);
     // fetch all rows
     int* ptr = statsStart[i];
-    while (mysql_stmt_fetch_row(stmt) == 0) {
+    while (mysql_stmt_fetch(stmt) == 0) {
       if (isNull) {
         *ptr = 0;
       } else {
@@ -283,12 +283,12 @@ bool generateIndices(MYSQL *con) {
 
       // ignore rows we don't need
       for (int ignored = 0; ignored < perIndex - 1; ignored++)
-        if (mysql_stmt_fetch_row(stmt) != 0) goto nextStat; // break out of both loops
+        if (mysql_stmt_fetch(stmt) != 0) goto nextStat; // break out of both loops
     }
 
 nextStat:
     // check if there have been errors
-    bool stmt_errno = mysql_stmt_errno(stmt);
+    int stmt_errno = mysql_stmt_errno(stmt);
     if (stmt_errno != 0) {
       stmtError(stmt);
     } else {

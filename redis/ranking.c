@@ -322,6 +322,8 @@ void *indexGenerator(void *arg) {
 
     if (generateIndices(con))
       available = 1;
+
+    mysql_close(con);
   }
 }
 
@@ -331,6 +333,7 @@ int RedisModule_OnUnload(RedisModuleCtx *ctx) {
   pthread_cancel(threadId);
   if (available == 1)
     freeIndices();
+  mysql_library_end();
 
   return REDISMODULE_OK;
 }

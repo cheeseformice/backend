@@ -10,6 +10,7 @@
 #include <mariadb/mysql.h>
 
 #define mysqlError(con) fprintf(stderr, "%s\n", mysql_error(con));
+#define stmtError(stmt) fprintf(stderr, "%s\n", mysql_stmt_error(stmt));
 #define getenvdef(var,default) getenv(var) ? getenv(var) : default;
 
 #define statsLength 10
@@ -227,6 +228,13 @@ bool generateIndices(MYSQL *con) {
   }
   setupIndices = true;
 
+  MYSQL_STMT *stmt = mysql_stmt_init(con);
+  char* query = "SELECT ? FROM `PLAYER` ORDER BY ? DESC";
+  if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0) {
+    fprintf(stderr, "%s\n", mysql_stmt_error(stmt));
+    goto error;
+  }
+
   // get & store all the numbers
   for (int i = 0; i < statsLength; i++) {
     const char* name = validStats[i];
@@ -239,34 +247,58 @@ bool generateIndices(MYSQL *con) {
     strcat(query, name);
     strcat(query, "` DESC;");
 
-    if (mysql_query(con, query) > 0) {
-      mysqlError(con);
+    MYSQL_STMT *stmt = mysql_stmt_init(con);
+    if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0) {
+      stmtError(stmt);
+      goto error;
+    }
+
+    // bind result
+    int statValue;
+    my_bool isNull;
+    my_bool hasError;
+    MYSQL_BIND bind[1];
+    memset(bind, 0, sizeof(bind));
+    bind[0].buffer_type = MYSQL_TYPE_LONG;
+    bind[0].buffer = (char *)&statValue;
+    bind[0].is_null = &isNull;
+    bind[0].error = &hasError;
+
+    if (mysql_stmt_bind_result(stmt, bind) != 0) {
+      stmtError(stmt);
+      goto error;
+    }
+
+    if (mysql_stmt_execute(stmt) != 0) {
+      stmtError(stmt);
       goto error;
     }
 
     // fetch all rows
     int* ptr = statsStart[i];
-    MYSQL_RES *res = mysql_use_result(con);
-    while (1) {
-      MYSQL_ROW row = mysql_fetch_row(res);
-      if (row == NULL) break;
-
-      *ptr = atoi(row[0]);
+    while (mysql_stmt_fetch_row(stmt) == 0) {
+      if (isNull) {
+        *ptr = 0;
+      } else {
+        *ptr = statValue;
+      }
       ptr++;
 
       // ignore rows we don't need
       for (int ignored = 0; ignored < perIndex - 1; ignored++)
-        if (mysql_fetch_row(res) == NULL) goto nextStat; // break out of both loops
+        if (mysql_stmt_fetch_row(stmt) != 0) goto nextStat; // break out of both loops
     }
 
 nextStat:
+    // check if there have been errors
+    bool stmt_errno = mysql_stmt_errno(stmt);
+    if (stmt_errno != 0) stmtError(stmt);
+
     // before going to the next stat, we need to cleanup
-    mysql_free_result(res);
-    // and check if there have been any errors
-    if (mysql_errno(con) != 0) {
-      mysqlError(con);
-      goto error;
-    }
+    mysql_stmt_free_result(stmt);
+    mysql_stmt_close(stmt);
+
+    if (stmt_errno != 0) goto error;
   }
 
   // if everything goes smoothly, we just return true

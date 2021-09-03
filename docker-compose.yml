@@ -30,7 +30,7 @@ services:
       - PIPE_SIZE
 
   redis:
-    image: redis:latest
+    build: ./redis
     command: [
       "/bin/sh", "-c",
       "chown -R redis /tmp/docker && redis-server /etc/redis/redis.conf"
@@ -39,8 +39,13 @@ services:
       - infrastructure
     volumes:
       - "redis-data:/data"
-      - "./redis.conf:/etc/redis/redis.conf"
+      - "./redis/redis.conf:/etc/redis/redis.conf"
       - "redis-socket:/tmp/docker"
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
 
   auth:
     build: ./auth

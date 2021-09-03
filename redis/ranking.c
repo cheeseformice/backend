@@ -241,8 +241,6 @@ bool generateIndices(MYSQL *con) {
         free(statsStart[j]);
       goto error;
     }
-
-    statsEnd[i] = statsStart[i] + count;
   }
   setupIndices = true;
   printfd("memory allocated\n");
@@ -310,6 +308,7 @@ nextStat: ;
       stmtError(stmt);
     } else {
       printfd("index generation for %s successful\n", name);
+      statsEnd[i] = ptr;
     }
 
     // before going to the next stat, we need to cleanup

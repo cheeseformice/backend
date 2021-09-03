@@ -122,7 +122,7 @@ int cmd_GETPOS(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
       ptr += ptrIncrement;
     }
 
-    position -= pageIncrement;
+    position = max(position - pageIncrement, 0);
     if (layer == 0) {
       RedisModule_ReplyWithArray(ctx, 2);
       RedisModule_ReplyWithLongLong(ctx, position);

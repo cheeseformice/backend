@@ -183,6 +183,8 @@ void freeIndices(void) {
 }
 
 bool generateIndices(MYSQL *con) {
+  print("generating indices\n");
+
   // on success, allocates statsStart, statsEnd, all children arrays and returns true
   // on failure, prints error and returns false. none of the arrays are allocated after that
   bool setupIndices = false;
@@ -227,13 +229,7 @@ bool generateIndices(MYSQL *con) {
     statsEnd[i] = statsStart[i] + count;
   }
   setupIndices = true;
-
-  MYSQL_STMT *stmt = mysql_stmt_init(con);
-  char* query = "SELECT ? FROM `PLAYER` ORDER BY ? DESC";
-  if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0) {
-    fprintf(stderr, "%s\n", mysql_stmt_error(stmt));
-    goto error;
-  }
+  printf("memory allocated\n");
 
   // get & store all the numbers
   for (int i = 0; i < statsLength; i++) {
@@ -274,6 +270,7 @@ bool generateIndices(MYSQL *con) {
       goto error;
     }
 
+    printf("generating indices for %s\n", name);
     // fetch all rows
     int* ptr = statsStart[i];
     while (mysql_stmt_fetch_row(stmt) == 0) {
@@ -292,7 +289,11 @@ bool generateIndices(MYSQL *con) {
 nextStat:
     // check if there have been errors
     bool stmt_errno = mysql_stmt_errno(stmt);
-    if (stmt_errno != 0) stmtError(stmt);
+    if (stmt_errno != 0) {
+      stmtError(stmt);
+    } else {
+      printf("index generation for %s successful", name);
+    }
 
     // before going to the next stat, we need to cleanup
     mysql_stmt_free_result(stmt);

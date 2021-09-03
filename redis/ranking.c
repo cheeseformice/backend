@@ -286,7 +286,7 @@ bool generateIndices(MYSQL *con) {
         if (mysql_stmt_fetch(stmt) != 0) goto nextStat; // break out of both loops
     }
 
-nextStat:
+nextStat: ;
     // check if there have been errors
     int stmt_errno = mysql_stmt_errno(stmt);
     if (stmt_errno != 0) {

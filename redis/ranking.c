@@ -236,12 +236,12 @@ bool generateIndices(MYSQL *con) {
     const char* name = validStats[i];
 
     // prepare mysql query
-    char query[42 + strlen(name) * 2];
+    char query[41 + strlen(name) * 2];
     strcpy(query, "SELECT `");
     strcat(query, name);
     strcat(query, "` FROM `player` ORDER BY `");
     strcat(query, name);
-    strcat(query, "` DESC;");
+    strcat(query, "` DESC");
 
     MYSQL_STMT *stmt = mysql_stmt_init(con);
     if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0) {

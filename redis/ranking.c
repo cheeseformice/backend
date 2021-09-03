@@ -45,8 +45,8 @@ void printfd(const char* fmt, ...) {
   time(&raw);
   struct tm* info = localtime(&raw);
 
-  char buffer[17 + strlen(fmt)];
-  strftime(buffer, 17, "[%d/%m %H:%M:%S]", info);
+  char buffer[18 + strlen(fmt)];
+  strftime(buffer, 17, "[%d/%m %H:%M:%S] ", info);
   strcat(buffer, fmt);
 
   va_list argptr;

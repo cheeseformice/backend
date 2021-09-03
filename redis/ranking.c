@@ -290,8 +290,9 @@ bool generateIndices(MYSQL *con) {
     // fetch all rows
     int* ptr = statsStart[i];
     while (mysql_stmt_fetch(stmt) == 0) {
-      if (isNull) {
+      if (isNull || statValue == 0) {
         *ptr = 0;
+        break;
       } else {
         *ptr = statValue;
       }

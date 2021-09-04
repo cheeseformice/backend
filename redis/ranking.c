@@ -330,16 +330,18 @@ void *indexGenerator(void *arg) {
       struct tm* timeinfo = localtime(&rawtime);
 
       int seconds = 0;
-      if (timeinfo->tm_hour >= 12)
+      if (timeinfo->tm_hour >= 15) {
         seconds += 12 * 60 * 60;
-
-      seconds += (11 - timeinfo->tm_hour % 12) * 60 * 60;
+        seconds += (26 - timeinfo->tm_hour) * 60 * 60;
+      } else {
+        seconds += (14 - timeinfo->tm_hour) * 60 * 60;
+      }
       seconds += (59 - timeinfo->tm_min) * 60;
       seconds += 60 - timeinfo->tm_sec;
 
       printfd("sleeping for %d seconds\n", seconds);
 
-      // sleep until 12:00:00 (today or tomorrow)
+      // sleep until 15:00:00 (today or tomorrow)
       sleep(seconds);
 
       printfd("wake up\n");

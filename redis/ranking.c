@@ -175,7 +175,7 @@ MYSQL* connectToMySQL(void) {
 }
 
 void freeIndices(void) {
-  for (int i = 0; i < statsLength; i--)
+  for (int i = 0; i < statsLength; i++)
     free(statsStart[i]);
 
   free(statsStart);

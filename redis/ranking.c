@@ -205,7 +205,7 @@ bool saveIndex(int i, char* path) {
     return false;
   }
 
-  fwrite((char*) statsStart[i], sizeof(int), (statsEnd[i] - statsStart[i]) * sizeof(int), f);
+  fwrite((char*) statsStart[i], sizeof(int), statsEnd[i] - statsStart[i], f);
   fclose(f);
 
   printfd("index %d written", i);

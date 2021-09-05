@@ -131,7 +131,8 @@ int cmd_GETPOS(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   }
 
   // r is in the least number greater than stat, which is what we are looking for
-  return reply_GETPOS(ctx, r * perIndex, ptr[m]);
+  r = max(r, 0);
+  return reply_GETPOS(ctx, r * perIndex, ptr[r]);
 }
 
 /* RANKING.GETPAGE name start */
@@ -142,7 +143,7 @@ int cmd_GETPAGE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (!parseArguments(ctx, argv, argc, &statIndex, &startRow))
     return REDISMODULE_OK;
 
-  int* ptr = statsStart[statIndex] + (startRow / perIndex) - 1;
+  int* ptr = statsStart[statIndex] + startRow / perIndex;
   int* end = statsEnd[statIndex];
 
   if (ptr >= end)

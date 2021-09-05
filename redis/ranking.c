@@ -181,7 +181,7 @@ void freeIndices(void) {
   free(statsEnd);
 }
 
-bool loadIndex(int i, char* path) {
+bool loadIndex(int i, const char* path) {
   FILE *f = fopen(path, "rb");
   if (f == NULL) return false;
 

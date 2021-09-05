@@ -182,6 +182,78 @@ void freeIndices(void) {
   free(statsEnd);
 }
 
+bool loadIndex(int i, char* path) {
+  FILE *f = fopen(path, "rb");
+  if (f == NULL) return false;
+
+  fseek(f, 0, SEEK_END);
+  int size = ftell(f);
+  rewind(f);
+
+  int *content = (int*) malloc(size);
+  fread(content, 1, size, f);
+  fclose(f);
+
+  statsStart[i] = content;
+  statsEnd[i] = content + (size / sizeof(int));
+  return true;
+}
+
+typedef struct s_index {
+  int idx;
+  char* path;
+} index_t;
+void *saveIndex(void *args) {
+  index_t *index = args;
+  int i = index->idx;
+  char* path = index->path;
+
+  FILE *f = fopen(path, "wb");
+  fwrite((char*) statsStart[i], sizeof(int), statsEnd[i] - statsStart[i], f);
+  fclose(f);
+}
+
+void saveIndices(void) {
+  const char* path = getenvdef("INDEX_SAVE", "/data/rank_index%d.bin");
+  printfd("saving indices to %s\n", path);
+
+  // create & start threads
+  index_t indices[statsLength];
+  pthread_t threads[statsLength];
+  for (int i = 0; i < statsLength; i++) {
+    char buffer[256];
+    sprintf(buffer, path, i);
+
+    indices[i].idx = i;
+    indices[i].path = buffer;
+
+    pthread_t tid;
+    pthread_create(&tid, NULL, saveIndex, &indices);
+  }
+
+  for (int i = 0; i < statsLength; i++)
+    pthread_join(threads[i], NULL);
+
+  printfd("indices saved\n");
+}
+
+bool allocateParentArrays(void) {
+  statsStart = (int**) malloc(statsLength * sizeof(int*));
+  if (statsStart == NULL) {
+    fprintf(stderr, "failed to allocate memory for indices.\n");
+    return false;
+  }
+
+  statsEnd = (int**) malloc(statsLength * sizeof(int*));
+  if (statsEnd == NULL) {
+    fprintf(stderr, "failed to allocate memory for indices.\n");
+    free(statsStart);
+    return false;
+  }
+
+  return true;
+}
+
 bool generateIndices(MYSQL *con) {
   printfd("generating indices\n");
 
@@ -201,18 +273,7 @@ bool generateIndices(MYSQL *con) {
   mysql_free_result(countRes);
 
   // allocate parent arrays
-  statsStart = (int**) malloc(statsLength * sizeof(int*));
-  if (statsStart == NULL) {
-    fprintf(stderr, "failed to allocate memory for indices.\n");
-    return false;
-  }
-
-  statsEnd = (int**) malloc(statsLength * sizeof(int*));
-  if (statsEnd == NULL) {
-    fprintf(stderr, "failed to allocate memory for indices.\n");
-    free(statsStart);
-    return false;
-  }
+  if (!allocateParentArrays()) return false;
 
   // allocate children arrays
   for (int i = 0; i < statsLength; i++) {
@@ -221,7 +282,7 @@ bool generateIndices(MYSQL *con) {
     if (statsStart[i] == NULL) {
       fprintf(stderr, "failed to allocate memory for indices.\n");
       // could not allocate more memory, so free what we already had
-      for (int j = statsLength - 1; j >= 0; j--)
+      for (int j = 0; j < i; j++)
         free(statsStart[j]);
       goto error;
     }
@@ -302,7 +363,8 @@ nextStat: ;
     if (stmt_errno != 0) goto error;
   }
 
-  // if everything goes smoothly, we just return true
+  // if everything goes smoothly, we just save the indices in disk & return true
+  saveIndices();
   return true;
 error:
   if (setupIndices) {
@@ -323,6 +385,37 @@ void *indexGenerator(void *arg) {
   while (1) {
     if (isFirstRun) {
       isFirstRun = false;
+
+      // try to load indices from disk first
+      if (!allocateParentArrays()) continue; // sleep until needed
+
+      const char* path = getenvdef("INDEX_SAVE", "/data/rank_index%d.bin");
+      int error = -1;
+      printfd("loading indices from %s\n", path);
+      for (int i = 0; i < statsLength; i++) {
+        char buffer[256];
+        sprintf(buffer, path, i);
+
+        if (!loadIndex(i, path)) {
+          printfd("could not load indices, starting index generation\n");
+          error = i;
+          break;
+        }
+      }
+
+      if (error == -1) {
+        printfd("indices loaded successfully\n");
+        continue; // sleep until needed
+      }
+
+      // gotta free what we already had
+      for (int i = 0; i < error; i++)
+        free(statsStart[i]);
+
+      free(statsStart);
+      free(statsEnd);
+
+      // now try to generate indices
 
     } else {
       time_t rawtime;
@@ -368,10 +461,8 @@ void *indexGenerator(void *arg) {
   }
 }
 
-int RedisModule_OnUnload(RedisModuleCtx *ctx) {
-  REDISMODULE_NOT_USED(ctx);
-
-  printfd("unloading module\n");
+void onShutdown(void) {
+  printfd("shutting down module\n");
 
   pthread_cancel(threadId);
   if (available == 1) {
@@ -379,8 +470,17 @@ int RedisModule_OnUnload(RedisModuleCtx *ctx) {
     freeIndices();
   }
   mysql_library_end();
+}
 
-  return REDISMODULE_OK;
+void onPersistence(RedisModuleCtx *ctx, RedisModuleEvent e, uint64_t sub, void *data) {
+  REDISMODULE_NOT_USED(ctx);
+  REDISMODULE_NOT_USED(e);
+  REDISMODULE_NOT_USED(data);
+
+  if (sub != REDISMODULE_SUBEVENT_PERSISTENCE_RDB_START &&
+      sub != REDISMODULE_SUBEVENT_PERSISTENCE_SYNC_RDB_START) return;
+
+  onShutdown();
 }
 
 int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -398,7 +498,15 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
       cmd_GETPAGE, "readonly", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
 
+  RedisModule_SubscribeToServerEvent(ctx, RedisModuleEvent_Persistence, onPersistence);
+
   pthread_create(&threadId, NULL, indexGenerator, NULL);
 
+  return REDISMODULE_OK;
+}
+
+int RedisModule_OnUnload(RedisModuleCtx *ctx) {
+  REDISMODULE_NOT_USED(ctx);
+  onShutdown();
   return REDISMODULE_OK;
 }

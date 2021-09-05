@@ -40,7 +40,7 @@ services:
       - database
     volumes:
       - "redis-data:/data"
-      - "test-redis-index:/data-rank"
+      - "redis-index:/data-rank"
       - "./redis/redis.conf:/etc/redis/redis.conf"
       - "redis-socket:/tmp/docker"
     environment:
@@ -212,6 +212,7 @@ services:
 volumes:
   db-data:
   redis-data:
+  redis-index:
   redis-socket:
 
 networks:

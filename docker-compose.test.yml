@@ -226,6 +226,7 @@ volumes:
   test-db-data:
   mockup-data:
   test-redis-data:
+  test-redis-index:
   test-redis-socket:
 
 networks:

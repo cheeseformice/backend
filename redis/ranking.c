@@ -399,7 +399,7 @@ void *indexGenerator(void *arg) {
         char buffer[256];
         sprintf(buffer, path, i);
 
-        if (!loadIndex(i, path)) {
+        if (!loadIndex(i, buffer)) {
           printfd("could not load indices, starting index generation\n");
           error = i;
           break;

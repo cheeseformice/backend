@@ -386,6 +386,7 @@ void *indexGenerator(void *arg) {
   while (1) {
     if (isFirstRun) {
       isFirstRun = false;
+      printfd("index generator boot\n");
 
       // try to load indices from disk first
       if (!allocateParentArrays()) continue; // sleep until needed

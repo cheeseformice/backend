@@ -230,6 +230,7 @@ void saveIndices(void) {
 
     pthread_t tid;
     pthread_create(&tid, NULL, saveIndex, &indices);
+    threads[i] = tid;
   }
 
   for (int i = 0; i < statsLength; i++)

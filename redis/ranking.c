@@ -225,11 +225,14 @@ void saveIndices(void) {
     char buffer[256];
     sprintf(buffer, path, i);
 
-    indices[i].idx = i;
-    indices[i].path = buffer;
+    index_t index;
+    index.idx = i;
+    index.path = buffer;
 
     pthread_t tid;
-    pthread_create(&tid, NULL, saveIndex, &indices[i]);
+    pthread_create(&tid, NULL, saveIndex, &index);
+
+    indices[i] = index;
     threads[i] = tid;
   }
 

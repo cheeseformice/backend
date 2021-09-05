@@ -96,6 +96,12 @@ bool parseArguments(
   return true;
 }
 
+int reply_GETPOS(RedisModuleCtx *ctx, int position, int value) {
+  RedisModule_ReplyWithArray(ctx, 2);
+  RedisModule_ReplyWithLongLong(ctx, position);
+  return RedisModule_ReplyWithLongLong(ctx, value);
+}
+
 /* RANKING.GETPOS name stat */
 // Returns approximate leaderboard position of stat
 int cmd_GETPOS(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -104,33 +110,29 @@ int cmd_GETPOS(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (!parseArguments(ctx, argv, argc, &statIndex, &stat))
     return REDISMODULE_OK;
 
-  int position = 0;
   int* ptr = statsStart[statIndex];
   int* end = statsEnd[statIndex];
-  int last = *ptr;
 
-  for (size_t layer = indexLayers - 1; layer >= 0; layer--) {
-    const int pageIncrement = perIndex * (layer + 1);
-    const int ptrIncrement = max(perIndex * layer, 1);
+  int l = 0;
+  int r = end - ptr - 1;
+  int m;
+  while (l <= r) {
+    m = (l + r) / 2;
 
-    while (ptr < end) {
-      if (*ptr < stat)
-        break;
+    // comparisons are inverted because the array is inverted
+    if (ptr[m] > stat) {
+      l = m + 1;
 
-      last = *ptr;
-      position += pageIncrement;
-      ptr += ptrIncrement;
-    }
+    } else if (ptr[m] < stat) {
+      r = m - 1;
 
-    position = max(position - pageIncrement, 0);
-    if (layer == 0) {
-      RedisModule_ReplyWithArray(ctx, 2);
-      RedisModule_ReplyWithLongLong(ctx, position);
-      return RedisModule_ReplyWithLongLong(ctx, last);
+    } else {
+      return reply_GETPOS(ctx, m * perIndex, ptr[m]);
     }
   }
 
-  return REDISMODULE_OK;
+  // r is in the least number greater than stat, which is what we are looking for
+  return reply_GETPOS(ctx, r * perIndex, ptr[m]);
 }
 
 /* RANKING.GETPAGE name start */

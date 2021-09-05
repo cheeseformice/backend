@@ -53,6 +53,7 @@ services:
       - database
     volumes:
       - "test-redis-data:/data"
+      - "test-redis-index:/data-rank"
       - "./redis/redis.conf:/etc/redis/redis.conf"
       - "test-redis-socket:/tmp/docker"
     environment:
@@ -60,6 +61,7 @@ services:
       - DB_IP
       - DB_USER
       - DB_PASS
+      - INDEX_SAVE=/data-rank/index%d.bin
 
   auth:
     build: ./auth

@@ -15,12 +15,9 @@
 #define getenvdef(var,default) getenv(var) ? getenv(var) : default;
 
 #define statsLength 10
-
-// 4 layers and 39 entries per layer is an optimal configuration
-// (for ~92mil rows total)
-#define indexLayers 4
 #define perIndex 39
 
+volatile sig_atomic_t didShutdown = 0;
 volatile sig_atomic_t available = 0;
 pthread_t threadId;
 
@@ -465,6 +462,9 @@ void *indexGenerator(void *arg) {
 }
 
 void onShutdown(void) {
+  if (didShutdown == 1) return;
+  didShutdown = 1;
+
   printfd("shutting down module\n");
 
   pthread_cancel(threadId);
@@ -475,13 +475,11 @@ void onShutdown(void) {
   mysql_library_end();
 }
 
-void onPersistence(RedisModuleCtx *ctx, RedisModuleEvent e, uint64_t sub, void *data) {
+void onServerShutdown(RedisModuleCtx *ctx, RedisModuleEvent e, uint64_t sub, void *data) {
   REDISMODULE_NOT_USED(ctx);
   REDISMODULE_NOT_USED(e);
+  REDISMODULE_NOT_USED(sub);
   REDISMODULE_NOT_USED(data);
-
-  if (sub != REDISMODULE_SUBEVENT_PERSISTENCE_RDB_START &&
-      sub != REDISMODULE_SUBEVENT_PERSISTENCE_SYNC_RDB_START) return;
 
   onShutdown();
 }
@@ -501,7 +499,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
       cmd_GETPAGE, "readonly", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
 
-  RedisModule_SubscribeToServerEvent(ctx, RedisModuleEvent_Persistence, onPersistence);
+  RedisModule_SubscribeToServerEvent(ctx, RedisModuleEvent_Shutdown, onServerShutdown);
 
   pthread_create(&threadId, NULL, indexGenerator, NULL);
 

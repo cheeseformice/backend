@@ -198,46 +198,30 @@ bool loadIndex(int i, const char* path) {
   return true;
 }
 
-typedef struct s_index {
-  int idx;
-  char* path;
-} index_t;
-void *saveIndex(void *args) {
-  index_t *index = args;
-  int i = index->idx;
-  char* path = index->path;
-
+bool saveIndex(int i, char* path) {
   FILE *f = fopen(path, "wb");
-  fwrite((char*) statsStart[i], sizeof(int), statsEnd[i] - statsStart[i], f);
+  if (f == NULL) {
+    printfd("could not write index %d", i);
+    return false;
+  }
+
+  fwrite((char*) statsStart[i], sizeof(int), (statsEnd[i] - statsStart[i]) * sizeof(int), f);
   fclose(f);
 
-  return NULL;
+  printfd("index %d written", i);
+  return true;
 }
 
 void saveIndices(void) {
   const char* path = getenvdef("INDEX_SAVE", "/data/rank_index%d.bin");
   printfd("saving indices to %s\n", path);
 
-  // create & start threads
-  index_t indices[statsLength];
-  pthread_t threads[statsLength];
   for (int i = 0; i < statsLength; i++) {
     char buffer[256];
     sprintf(buffer, path, i);
 
-    index_t index;
-    index.idx = i;
-    index.path = buffer;
-
-    pthread_t tid;
-    pthread_create(&tid, NULL, saveIndex, &index);
-
-    indices[i] = index;
-    threads[i] = tid;
+    saveIndex(i, buffer);
   }
-
-  for (int i = 0; i < statsLength; i++)
-    pthread_join(threads[i], NULL);
 
   printfd("indices saved\n");
 }

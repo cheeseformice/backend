@@ -210,6 +210,8 @@ void *saveIndex(void *args) {
   FILE *f = fopen(path, "wb");
   fwrite((char*) statsStart[i], sizeof(int), statsEnd[i] - statsStart[i], f);
   fclose(f);
+
+  return NULL;
 }
 
 void saveIndices(void) {

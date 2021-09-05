@@ -229,7 +229,7 @@ void saveIndices(void) {
     indices[i].path = buffer;
 
     pthread_t tid;
-    pthread_create(&tid, NULL, saveIndex, &indices);
+    pthread_create(&tid, NULL, saveIndex, &indices[i]);
     threads[i] = tid;
   }
 

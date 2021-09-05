@@ -50,6 +50,8 @@ void printfd(const char* fmt, ...) {
   va_start(argptr, fmt);
   vprintf(buffer, argptr);
   va_end(argptr);
+
+  fflush(stdout);
 }
 
 int max(int a, int b) {

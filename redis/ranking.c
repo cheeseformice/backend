@@ -143,14 +143,11 @@ int cmd_GETPAGE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
   if (!parseArguments(ctx, argv, argc, &statIndex, &startRow))
     return REDISMODULE_OK;
 
-  int page = 0;
   int* ptr = statsStart[statIndex] + (startRow / perIndex) - 1;
   int* end = statsEnd[statIndex];
 
-  if (ptr >= end) {
+  if (ptr >= end)
     return RedisModule_ReplyWithError(ctx, "ERR page too far");
-  }
-
   return RedisModule_ReplyWithLongLong(ctx, *ptr);
 }
 

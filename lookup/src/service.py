@@ -110,6 +110,7 @@ async def lookup_player(request):
 		)
 		count_query = select(func.count().label("total"))
 
+		field = getattr(period.c, db_field)
 		if tribe is not None:
 			where = member.c.id_tribe == tribe
 			query = query.where(where)
@@ -119,9 +120,24 @@ async def lookup_player(request):
 				.join(member, member.c.id_member == period.c.id)
 			).where(where)
 		else:
+			if request.period == "overall":
+				response = await service.redis.send("ranking.getpage", offset)
+				if isinstance(response, list):
+					offset -= response[0]
+					query = query.where(field >= response[1])
+
+				else:
+					print(response)
+					if offset > 10000:
+						await request.reject(
+							"BadRequest",
+							"The page is too far."
+						)
+						return
+
 			count_query = count_query.select_from(period)
 
-		query = query.order_by(desc(getattr(period.c, db_field)))
+		query = query.order_by(desc(field))
 
 	elif request.search:
 		name = request.search.replace("%", "").replace("_", "\\_") + "%"
@@ -156,6 +172,7 @@ async def lookup_player(request):
 			select(func.count().label("total"))
 			.select_from(select_from)
 			.where(name_query)
+			.offset(offset).limit(limit)
 		)
 
 	elif tribe is not None:
@@ -179,13 +196,14 @@ async def lookup_player(request):
 			select(func.count().label("total"))
 			.select_from(member)
 			.where(where)
+			.offset(offset).limit(limit)
 		)
 
 	async with service.db.acquire() as conn:
 		result = await conn.execute(count_query)
 		total = await result.first()
 
-		result = await conn.execute(query.offset(offset).limit(limit))
+		result = await conn.execute(query)
 		rows = await result.fetchall()
 
 	response = []

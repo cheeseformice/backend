@@ -45,7 +45,9 @@ function handleServiceError(res, result) {
 			break;
 
 		case "rejected":
-			if (result.type == "NotFound") {
+			if (result.type == "BadRequest") {
+				writeError(res, 400, result.args[0]);
+			}	else if (result.type == "NotFound") {
 				writeError(res, 404, result.args[0]);
 			} else if (result.type == "NotImplemented") {
 				writeError(res, 500, result.args[0]);

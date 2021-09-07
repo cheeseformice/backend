@@ -121,7 +121,11 @@ async def lookup_player(request):
 			).where(where)
 		else:
 			if request.period == "overall":
-				response = await service.redis.send("ranking.getpage", request.order, offset)
+				response = await service.redis.send(
+					"ranking.getpage",
+					request.order,
+					offset
+				)
 				if isinstance(response, list):
 					offset -= response[0]
 					query = query.where(field >= response[1])

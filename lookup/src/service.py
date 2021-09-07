@@ -121,7 +121,7 @@ async def lookup_player(request):
 			).where(where)
 		else:
 			if request.period == "overall":
-				response = await service.redis.send("ranking.getpage", offset)
+				response = await service.redis.send("ranking.getpage", request.order, offset)
 				if isinstance(response, list):
 					offset -= response[0]
 					query = query.where(field >= response[1])
@@ -299,6 +299,41 @@ async def lookup_tribe(request):
 	await request.send({
 		"total": total.total,
 		"page": response,
+	})
+
+
+@service.on_request("player-position")
+async def get_player_position(request):
+	field, value = request.field, request.value
+
+	for name, db_field in rankable_fields:
+		if name == field:
+			break
+	else:
+		await request.reject(
+			"NotImplemented"
+			"The field {} is not rankable... yet."
+			.format(field)
+		)
+		return
+
+	response = await service.redis.send("ranking.getpos", field, value)
+	if not isinstance(response, list):
+		await request.reject("Unavailable")
+		return
+
+	approximate, boundary = response
+	field = getattr(player.c, db_field)
+	async with service.db.acquire() as conn:
+		result = await conn.execute(
+			select(func.count().label("count"))
+			.select_from(player)
+			.where(and_(field >= boundary, field <= value))
+		)
+		count = await result.first()
+
+	await request.send({
+		"position": count.count + approximate
 	})
 
 

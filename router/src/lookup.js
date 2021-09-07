@@ -6,6 +6,7 @@ const {
 	getPagination,
 	writeError,
 	rankableFields,
+	handleServiceError,
 	handleBasicServiceResult,
 } = require("./common");
 
@@ -111,6 +112,37 @@ function lookup(what) {
 }
 router.get("/players", lookup("player"));
 router.get("/tribes", lookup("tribe"));
+
+router.get("/position/:field", (req, res) => {
+	let { field } = req.params;
+	let { value } = req.query;
+
+	value = parseInt(value);
+	if (isNaN(value)) {
+		return writeError(res, 400, "Invalid stat value");
+	}
+
+	if (!rankableFields.includes(field)) {
+		return writeError(res, 400, "The given field is not rankable.");
+	}
+
+	service.request("lookup", "player-position", {
+		field, value
+	}, (result) => {
+		if (result.type == "simple") {
+			if (!!contentType) { res.type(contentType); }
+			res.send(result.content);
+
+		} else if (!!result.err) {
+			if (result.err == "rejected" && result.type == "Unavailable") {
+				writeError(res, 503, "This operation can't be performed right now.");
+				return;
+			}
+
+			handleServiceError(res, result);
+		}
+	});
+});
 
 router.get("/tribes/:id/members", (req, res) => {
 	// Someone wants the list of members of a tribe

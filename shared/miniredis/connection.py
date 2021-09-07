@@ -34,6 +34,7 @@ class RedisProtocol(asyncio.Protocol):
 		]
 
 		for string in array:
+			string = str(string)
 			parts.append(
 				"${}\r\n{}\r\n"
 				.format(len(string), string)

@@ -148,6 +148,8 @@ int cmd_GETPAGE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 
   if (ptr >= end)
     return RedisModule_ReplyWithError(ctx, "ERR page too far");
+  RedisModule_ReplyWithArray(ctx, 2);
+  RedisModule_ReplyWithLongLong(ctx, startRow / perIndex * perIndex);
   return RedisModule_ReplyWithLongLong(ctx, *ptr);
 }
 

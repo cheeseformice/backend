@@ -397,6 +397,7 @@ void *indexGenerator(void *arg) {
 
       if (error == -1) {
         printfd("indices loaded successfully\n");
+        available = 1;
         continue; // sleep until needed
       }
 

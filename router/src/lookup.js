@@ -130,7 +130,6 @@ router.get("/position/:field", (req, res) => {
 		field, value
 	}, (result) => {
 		if (result.type == "simple") {
-			if (!!contentType) { res.type(contentType); }
 			res.send(result.content);
 
 		} else if (!!result.err) {

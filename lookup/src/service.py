@@ -126,12 +126,13 @@ async def lookup_player(request):
 					db_field,
 					offset
 				)
+				print(db_field, offset, limit, response)
 				if isinstance(response, list):
 					offset -= response[0]
 					query = query.where(field >= response[1])
+					print(offset)
 
 				else:
-					print(response)
 					if offset > 10000:
 						await request.reject(
 							"BadRequest",
@@ -176,7 +177,6 @@ async def lookup_player(request):
 			select(func.count().label("total"))
 			.select_from(select_from)
 			.where(name_query)
-			.offset(offset).limit(limit)
 		)
 
 	elif tribe is not None:
@@ -200,14 +200,13 @@ async def lookup_player(request):
 			select(func.count().label("total"))
 			.select_from(member)
 			.where(where)
-			.offset(offset).limit(limit)
 		)
 
 	async with service.db.acquire() as conn:
 		result = await conn.execute(count_query)
 		total = await result.first()
 
-		result = await conn.execute(query)
+		result = await conn.execute(query.offset(offset).limit(limit))
 		rows = await result.fetchall()
 
 	response = []

@@ -329,12 +329,12 @@ async def get_player_position(request):
 		result = await conn.execute(
 			select(func.count().label("count"))
 			.select_from(player)
-			.where(and_(field <= boundary, field >= value))
+			.where(and_(field < boundary, field > value))
 		)
 		count = await result.first()
 
 	await request.send({
-		"position": count.count + approximate
+		"position": max(1, count.count + approximate)
 	})
 
 

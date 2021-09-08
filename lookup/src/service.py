@@ -123,7 +123,7 @@ async def lookup_player(request):
 			if request.period == "overall":
 				response = await service.redis.send(
 					"ranking.getpage",
-					request.order,
+					db_field,
 					offset
 				)
 				if isinstance(response, list):
@@ -321,7 +321,7 @@ async def get_player_position(request):
 		)
 		return
 
-	response = await service.redis.send("ranking.getpos", field, value)
+	response = await service.redis.send("ranking.getpos", db_field, value)
 	if not isinstance(response, list):
 		await request.reject("Unavailable")
 		return

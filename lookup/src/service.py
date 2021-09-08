@@ -126,11 +126,9 @@ async def lookup_player(request):
 					db_field,
 					offset
 				)
-				print(db_field, offset, limit, response)
 				if isinstance(response, list):
 					offset -= response[0]
-					query = query.where(field >= response[1])
-					print(offset)
+					query = query.where(field <= response[1])
 
 				else:
 					if offset > 10000:
@@ -331,7 +329,7 @@ async def get_player_position(request):
 		result = await conn.execute(
 			select(func.count().label("count"))
 			.select_from(player)
-			.where(and_(field >= boundary, field <= value))
+			.where(and_(field <= boundary, field >= value))
 		)
 		count = await result.first()
 

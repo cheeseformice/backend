@@ -77,7 +77,7 @@ async def _write_periodic_rank(tbl, period, days, inte):
 	else:
 		format_name = "{}@{}".format(tbl.name, period)
 		target = "{}_{}".format(tbl.name, period)
-		source = "{}".format(tbl.name)
+		source = "{}_new".format(tbl.name)
 
 	columns = "`,`".join(stat_columns)
 	calculations = ",".join([

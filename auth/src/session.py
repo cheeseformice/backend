@@ -128,8 +128,8 @@ async def new_session(request):
 				)
 				.select_from(
 					player
-					.join(auth, player.c.id == auth.c.id)
-					.outerjoin(roles, roles.c.id == auth.c.id)
+					.outerjoin(auth, player.c.id == auth.c.id)
+					.outerjoin(roles, roles.c.id == player.c.id)
 				)
 				.where(player.c.id == user["playerId"])
 			)

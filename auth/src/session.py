@@ -166,8 +166,8 @@ async def new_session(request):
 	response["success"] = True
 	response["session"] = {
 		"user": row.id,
-		"cfm_roles": to_cfm_roles(row.cfm_roles),
-		"tfm_roles": to_tfm_roles(row.tfm_roles),
+		"cfm_roles": to_cfm_roles(row.cfm_roles or 0),
+		"tfm_roles": to_tfm_roles(row.tfm_roles or 0),
 	}
 	await request.send(response)
 	await request.end()

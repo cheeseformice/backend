@@ -1,3 +1,5 @@
+import json
+
 from common import service, env
 
 from argon2 import PasswordHasher, exceptions
@@ -106,9 +108,10 @@ async def new_session(request):
 			f"{env.ticket_api}"
 			f"?ticket={request.ticket}"
 		) as resp:
-			try:
-				user = await resp.json()
-			except Exception:
+			if resp.status == 200:
+				user = json.loads(await resp.read())
+
+			else:
 				return await request.reject(
 					"InvalidCredentials",
 					"Invalid ticket."
@@ -128,7 +131,7 @@ async def new_session(request):
 					.join(auth, player.c.id == auth.c.id)
 					.outerjoin(roles, roles.c.id == auth.c.id)
 				)
-				.where(player.c.id == user["id"])
+				.where(player.c.id == user["playerId"])
 			)
 			row = await result.first()
 

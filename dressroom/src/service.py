@@ -1,5 +1,6 @@
 import os
 
+
 def download_assets():
 	os.system("pypy3 -u /packed-assets/download.py")
 	os.system("pypy3 -u /packed-assets/unpack.py")
@@ -9,10 +10,10 @@ if __name__ == "__main__":
 	download_assets()
 
 
-from shared.pyservice import Service
+from shared.pyservice import Service  # noqa
 
 from drawer import read_assets, get_pose, get_fur, get_costume, \
-	get_section_name
+	get_section_name  # noqa
 
 
 service = Service("dressroom")

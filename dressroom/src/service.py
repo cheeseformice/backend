@@ -11,6 +11,11 @@ SVG_DEF = '<svg xmlns="http://www.w3.org/2000/svg" \
 				height="80px" width="60px">'
 
 
+def download_assets():
+	os.system("pypy3 -u /packed-assets/download.py")
+	os.system("pypy3 -u /packed-assets/unpack.py")
+
+
 @service.event
 async def on_boot(new):
 	global service
@@ -20,8 +25,7 @@ async def on_boot(new):
 @service.on_request("prepare-assets")
 async def prepare_assets(request):
 	await request.open_stream()
-	os.system("pypy3 -u /packed-assets/download.py")
-	os.system("pypy3 -u /packed-assets/unpack.py")
+	download_assets()
 	await request.send("done")
 	await request.end()
 
@@ -124,4 +128,5 @@ async def draw_mouse(request):
 
 
 if __name__ == "__main__":
+	download_assets()
 	service.run(workers=int(os.getenv("WORKERS", "2")))

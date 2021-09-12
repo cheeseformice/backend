@@ -6,9 +6,11 @@ except ImportError:
 	import json
 
 
+repo = "cheeseformice/dressroom-assets"
 directory = dirname(abspath(__file__))
-with open(join(directory, "latest-release.json"), "r") as file:
-	release = json.loads(file.read())
+
+response = urlopen(f"https://api.github.com/repos/{repo}/releases/latest")
+release = json.loads(response.read())
 
 print(f"Using assets from game {release['tag_name']}")
 

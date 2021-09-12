@@ -1,5 +1,14 @@
 import os
 
+def download_assets():
+	os.system("pypy3 -u /packed-assets/download.py")
+	os.system("pypy3 -u /packed-assets/unpack.py")
+
+
+if __name__ == "__main__":
+	download_assets()
+
+
 from shared.pyservice import Service
 
 from drawer import read_assets, get_pose, get_fur, get_costume, \
@@ -9,11 +18,6 @@ from drawer import read_assets, get_pose, get_fur, get_costume, \
 service = Service("dressroom")
 SVG_DEF = '<svg xmlns="http://www.w3.org/2000/svg" \
 				height="80px" width="60px">'
-
-
-def download_assets():
-	os.system("pypy3 -u /packed-assets/download.py")
-	os.system("pypy3 -u /packed-assets/unpack.py")
 
 
 @service.event
@@ -128,5 +132,4 @@ async def draw_mouse(request):
 
 
 if __name__ == "__main__":
-	download_assets()
 	service.run(workers=int(os.getenv("WORKERS", "2")))

@@ -31,6 +31,7 @@ class Relation:
 
 relations = (
 	# db fields that are related to each other
+	Relation(("score_overall",), ()),
 	Relation(("bootcamp",), ()),
 	Relation(
 		("round_played", "cheese_gathered", "first", "score_stats"),
@@ -301,7 +302,7 @@ async def lookup_player(request):
 					row_resp[key] = value
 
 			else:
-				for name, db_field in rankable_fields:
+				for name, db_field in rankable_fields.items():
 					row_resp[name] = getattr(row, db_field)
 
 	await request.send({
@@ -396,7 +397,7 @@ async def lookup_tribe(request):
 					row_resp[key] = value
 
 			else:
-				for name, db_field in rankable_fields:
+				for name, db_field in rankable_fields.items():
 					row_resp[name] = getattr(row, db_field)
 
 	await request.send({

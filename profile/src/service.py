@@ -9,7 +9,7 @@ from shared.models import roles, player, player_changelog, player_privacy, \
 from shared.schemas import as_dict
 
 from aiomysql.sa import create_engine
-from sqlalchemy import and_, desc, asc, func
+from sqlalchemy import and_, desc, asc
 from sqlalchemy.sql import select
 
 

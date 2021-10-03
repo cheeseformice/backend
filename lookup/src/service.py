@@ -2,7 +2,7 @@ import os
 import asyncio
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import Tuple
 
 from shared.pyservice import Service
 from shared.roles import to_cfm_roles, to_tfm_roles

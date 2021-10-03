@@ -74,7 +74,6 @@ def calculate_difference(is_tribe, end, start):
 			"members",
 			"active",
 		)
-		check = check[1:]  # ignore experience
 
 	profile_stats = {}
 	for stat in check:

@@ -1,8 +1,10 @@
 import os
 import asyncio
 
-from shared.pyservice import Service
+from dataclasses import dataclass
+from typing import List, Tuple
 
+from shared.pyservice import Service
 from shared.roles import to_cfm_roles, to_tfm_roles
 
 from shared.models import roles, player, tribe, member, periods
@@ -21,19 +23,81 @@ class env:
 service = Service("lookup")
 
 
-rankable_fields = (
-	# (name, db_field)
-	("rounds", "round_played"),
-	("cheese", "cheese_gathered"),
-	("first", "first"),
-	("bootcamp", "bootcamp"),
-	("stats", "score_stats"),
-	("shaman", "score_shaman"),
-	("survivor", "score_survivor"),
-	("racing", "score_racing"),
-	("defilante", "score_defilante"),
-	("overall", "score_overall"),
+@dataclass
+class Relation:
+	keys: Tuple[str]
+	relations: Tuple[str]
+
+
+relations = (
+	# db fields that are related to each other
+	Relation(("bootcamp",), ()),
+	Relation(
+		("round_played", "cheese_gathered", "first", "score_stats"),
+		("saved_mice",)
+	),
+	Relation(
+		("score_shaman",),
+		(
+			"shaman_cheese", "saved_mice", "saved_mice_hard",
+			"saved_mice_divine", "round_played",
+		)
+	),
+	Relation(
+		("score_survivor",),
+		(
+			"survivor_survivor_count", "survivor_mouse_killed",
+			"survivor_shaman_count", "survivor_round_played",
+		)
+	),
+	Relation(
+		("score_racing",),
+		(
+			"racing_first", "racing_podium", "racing_round_played",
+			"racing_finished_map",
+		)
+	),
+	Relation(
+		("score_defilante",),
+		("defilante_points", "defilante_round_played", "defilante_finished_map")
+	),
 )
+rankable_fields = {
+	"rounds": "round_played",
+	"cheese": "cheese_gathered",
+	"first": "first",
+	"bootcamp": "bootcamp",
+	"stats": "score_stats",
+	"shaman": "score_shaman",
+	"survivor": "score_survivor",
+	"racing": "score_racing",
+	"defilante": "score_defilante",
+	"overall": "score_overall",
+}
+aliases = {
+	# all scores show up as "score"
+	# all aliases that don't appear here use the db name
+	"round_played": "rounds",
+	"cheese_gathered": "cheese",
+
+	"saved_mice": "saves_normal",
+	"saved_mice_hard": "saves_hard",
+	"saved_mice_divine": "saves_divine",
+
+	"survivor_survivor_count": "survivor",
+	"survivor_mouse_killed": "killed",
+	"survivor_shaman_count": "shaman",
+	"survivor_round_played": "rounds",
+
+	"racing_first": "first",
+	"racing_podium": "podium",
+	"racing_round_played": "rounds",
+	"racing_finished_map": "finished",
+
+	"defilante_points": "points",
+	"defilante_round_played": "rounds",
+	"defilante_finished_map": "finished",
+}
 
 
 @service.event
@@ -65,16 +129,15 @@ async def lookup_player(request):
 	tribe = request.tribe
 
 	if request.order:
-		for name, db_field in rankable_fields:
-			if name == request.order:
-				break
-		else:
+		if request.order not in rankable_fields:
 			await request.reject(
 				"NotImplemented"
 				"The field {} is not rankable... yet."
 				.format(request.order)
 			)
 			return
+
+		db_field = rankable_fields[request.order]
 
 		columns = (player,)
 		select_from = player
@@ -207,6 +270,15 @@ async def lookup_player(request):
 		result = await conn.execute(query.offset(offset).limit(limit))
 		rows = await result.fetchall()
 
+	if request.order:
+		for relation in relations:
+			if db_field in relation.keys:
+				break
+		else:
+			raise ValueError(f"missing relation for {db_field}")
+
+		relation = relation.keys + relation.relations
+
 	response = []
 	for row in rows:
 		row_resp = {
@@ -218,8 +290,19 @@ async def lookup_player(request):
 		response.append(row_resp)
 
 		if request.order:
-			for name, db_field in rankable_fields:
-				row_resp[name] = getattr(row, db_field)
+			if request.test_server:
+				for db_field in relation:
+					value = getattr(row, db_field)
+					if db_field.startswith("score_"):
+						key = "score"
+					else:
+						key = aliases.get(db_field, db_field)
+
+					row_resp[key] = value
+
+			else:
+				for name, db_field in rankable_fields:
+					row_resp[name] = getattr(row, db_field)
 
 	await request.send({
 		"total": total.total,
@@ -232,16 +315,15 @@ async def lookup_tribe(request):
 	offset, limit = request.offset, request.limit
 
 	if request.order:
-		for name, db_field in rankable_fields:
-			if name == request.order:
-				break
-		else:
+		if request.order not in rankable_fields:
 			await request.reject(
 				"NotImplemented"
 				"The field {} is not rankable... yet."
 				.format(request.order)
 			)
 			return
+
+		db_field = rankable_fields[request.order]
 
 		period = periods["tribe"][request.period]
 		query = (
@@ -285,6 +367,15 @@ async def lookup_tribe(request):
 		result = await conn.execute(query.offset(offset).limit(limit))
 		rows = await result.fetchall()
 
+	if request.order:
+		for relation in relations:
+			if db_field in relation.keys:
+				break
+		else:
+			raise ValueError(f"missing relation for {db_field}")
+
+		relation = relation.keys + relation.relations
+
 	response = []
 	for row in rows:
 		row_resp = {
@@ -294,8 +385,19 @@ async def lookup_tribe(request):
 		response.append(row_resp)
 
 		if request.order:
-			for name, db_field in rankable_fields:
-				row_resp[name] = getattr(row, db_field)
+			if request.test_server:
+				for db_field in relation:
+					value = getattr(row, db_field)
+					if db_field.startswith("score_"):
+						key = "score"
+					else:
+						key = aliases.get(db_field, db_field)
+
+					row_resp[key] = value
+
+			else:
+				for name, db_field in rankable_fields:
+					row_resp[name] = getattr(row, db_field)
 
 	await request.send({
 		"total": total.total,
@@ -307,16 +409,15 @@ async def lookup_tribe(request):
 async def get_player_position(request):
 	field, value = request.field, request.value
 
-	for name, db_field in rankable_fields:
-		if name == field:
-			break
-	else:
+	if field not in rankable_fields:
 		await request.reject(
 			"NotImplemented"
 			"The field {} is not rankable... yet."
 			.format(field)
 		)
 		return
+
+	db_field = rankable_fields[field]
 
 	response = await service.redis.send("ranking.getpos", db_field, value)
 	if not isinstance(response, list):

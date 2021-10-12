@@ -141,6 +141,8 @@ schemas = {
 	},
 
 	"Privacy": {
+		"soulmate": Field("soulmate", False),
+		"tribe": Field("tribe", False),
 		"titles": Field("titles", True),
 		"shaman": Field("shaman", True),
 		"mouse": Field("mouse", True),

@@ -1,5 +1,5 @@
 from shared.schemas import as_dict
-from logs import LogInfo
+from shared.logs import LogInfo
 from typing import Dict
 
 

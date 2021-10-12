@@ -139,6 +139,20 @@ schemas = {
 		"members": Require("TribeMemberCount"),
 		"stats": Require("AllStats"),
 	},
+
+	"Privacy": {
+		"titles": Field("titles", True),
+		"shaman": Field("shaman", True),
+		"mouse": Field("mouse", True),
+		"survivor": Field("survivor", True),
+		"racing": Field("racing", True),
+		"defilante": Field("defilante", True),
+	},
+
+	"AccountInformation": {
+		"player": Require("BasicPlayer"),
+		"privacy": Require("Privacy"),
+	},
 }
 
 

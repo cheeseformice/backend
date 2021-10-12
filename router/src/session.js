@@ -102,15 +102,15 @@ router.post("/@me/password", async (req, res) => {
 	);
 })
 
-router.get("/@me/privacy", (req, res) => {
-	// Someone wants to know their current privacy settings
+router.get("/@me", (req, res) => {
+	// Someone wants to know their current profile
 	const auth = assertAuthorization(req, res);
 	if (!auth) { return; }
 
-	// Send the request to the auth service,
+	// Send the request to the account service,
 	// and just send whatever it replies to the user
 	service.request(
-		"auth", "get-privacy", {auth: auth},
+		"account", "get-me", {auth: auth},
 		handleBasicServiceResult(res)
 	);
 });
@@ -134,7 +134,7 @@ router.patch("/@me/privacy", (req, res) => {
 
 	// Send the request to the auth service
 	service.request(
-		"auth", "set-privacy", {
+		"account", "set-privacy", {
 			auth: auth,
 			privacy: req.body,
 		}, (result) => {

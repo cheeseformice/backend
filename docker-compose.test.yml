@@ -63,6 +63,28 @@ services:
       - DB_PASS
       - INDEX_SAVE=/data-rank/index%d.bin
 
+  account:
+    build: ./account
+    volumes:
+      - "./shared:/src/shared"
+      - "test-redis-socket:/tmp/docker"
+    depends_on:
+      - redis
+      - database
+    networks:
+      - infrastructure
+      - database
+    environment:
+      - DB
+      - DB_IP
+      - DB_USER
+      - DB_PASS
+      - INFRA_ADDR
+      - INFRA_RECONNECT
+      - INFRA_PING_DELAY
+      - INFRA_PING_TIMEOUT
+      - WORKERS=1
+
   auth:
     build: ./auth
     volumes:

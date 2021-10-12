@@ -1,9 +1,9 @@
 from common import service
 from helpers import filter_private, check_needs, fix_dates
 from fetch import fetch_player_info, fetch_player_logs, fetch_member_logs
-from logs import PlayerLogs, TribeLogs
 from read import read_history
 
+from shared.logs import PlayerLogs, TribeLogs
 from shared.models import tribe, tribe_changelog
 from shared.schemas import as_dict
 

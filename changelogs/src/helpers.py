@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Dict, Tuple
-from logs import LogInfo
+from shared.logs import LogInfo
 
 member_logs = {"soulmate", "tribe"}
 

@@ -3,7 +3,6 @@ import os
 from common import service
 
 # Initialize modules
-import privacy  # noqa
 import roles  # noqa
 import session  # noqa
 

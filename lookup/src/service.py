@@ -81,6 +81,7 @@ aliases = {
 	"round_played": "rounds",
 	"cheese_gathered": "cheese",
 
+	"shaman_cheese": "cheese",
 	"saved_mice": "saves_normal",
 	"saved_mice_hard": "saves_hard",
 	"saved_mice_divine": "saves_divine",

@@ -3,7 +3,7 @@ CREATE TABLE `roles` (
   `tfm` int(11) NOT NULL DEFAULT '0', -- TFM Roles
   `cfm` int(11) NOT NULL DEFAULT '0', -- CFM Roles
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `auth` (
   `id` bigint(20) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE `auth` (
   `discord` bigint(20),
   PRIMARY KEY (`id`),
   KEY `discord` (`discord`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `player_privacy` (
   `id` bigint(20) NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE `player_privacy` (
   `racing` boolean NOT NULL DEFAULT '1',
   `defilante` boolean NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `tribe_privacy` (
   `id` bigint(20) NOT NULL,
@@ -37,4 +37,4 @@ CREATE TABLE `tribe_privacy` (
   `member` smallint(1) NOT NULL DEFAULT '3',
   `active` smallint(1) NOT NULL DEFAULT '2',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;

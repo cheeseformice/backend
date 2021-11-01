@@ -6,7 +6,7 @@ do
 	midnight=$(date -d 'tomorrow 00:05:00' +%s)
 	now=$(date +%s)
 	seconds=$(($midnight - $now))
-	timeout --preserve-status ${seconds}s $@
+	timeout --preserve-status ${seconds}s docker-entrypoint.sh $@
 
 	# Backup data
 	/backup.sh

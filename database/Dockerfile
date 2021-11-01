@@ -19,4 +19,5 @@ HEALTHCHECK --timeout=20s --retries=10 \
 	CMD mysqladmin ping -h localhost -u ${MYSQL_USER} -p${MYSQL_PASSWORD}
 
 EXPOSE 3306
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["/run-til-midnight.sh", "mysqld"]

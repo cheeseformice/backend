@@ -9,5 +9,7 @@ do
 	timeout --preserve-status ${seconds}s docker-entrypoint.sh $@
 
 	# Backup data
-	/backup.sh
+	echo $@
+	sleep infinity
+	#/backup.sh
 done

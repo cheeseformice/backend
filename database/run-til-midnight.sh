@@ -10,7 +10,7 @@ do
 	timeout --preserve-status ${seconds}s $@
 
 	# Backup data
-	echo "$@"
+	echo "$@ $(id)"
 	sleep infinity
 	#/backup.sh
 done

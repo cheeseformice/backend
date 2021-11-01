@@ -1,7 +1,7 @@
 FROM mariadb:10.1.48
 
 RUN apt-get update && \
-	apt-get install -y ftp && \
+	apt-get install -y sshpass && \
 	apt-get clean
 
 ENV MYSQL_DATABASE=api_data \

@@ -8,13 +8,7 @@ tar -czvf ~/$filename /var/lib/mysql/${MYSQL_DATABASE}/{auth*,member_changelog*,
 compressed=$(date +%s)
 echo "Compression took $(($compressed - $start)) seconds"
 
-ftp -n ${BACKUP_HOST} <<ENDSC
-quote USER ${BACKUP_USER}
-quote PASS ${BACKUP_PASS}
-binary
-put ~/$filename
-quit
-ENDSC
+sshpass -p ${BACKUP_PASS} scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${BACKUP_USER}@${BACKUP_HOST}:$filename
 transferred=$(date +%s)
 echo "Transfer took $(($transferred - $compressed)) seconds"
 

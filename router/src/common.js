@@ -29,7 +29,7 @@ const statusReasons = {
 
 function writeError(res, status, message) {
 	const reason = statusReasons[status] || "";
-	const result = { status: status };
+	const result = { status: status, success: false };
 
 	if (!!reason) { result.error = reason; }
 	if (!!message) { result.message = message; }

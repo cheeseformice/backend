@@ -87,7 +87,9 @@ router.post("/session", async (req, res) => {
 			}
 
 			// Everything is OK
-			let response = {};
+			let response = {
+				success: true,
+			};
 
 			if (typeof req.body.ticket == "string") {
 				response.has_password = result.content.has_password;

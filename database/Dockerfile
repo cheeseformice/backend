@@ -6,8 +6,17 @@ ENV MYSQL_DATABASE=api_data \
 	MYSQL_PASSWORD=test
 
 ADD *.sql /docker-entrypoint-initdb.d/
+ADD /backup.sh /
+ADD /run-til-midnight.sh /
+RUN chmod +x /backup.sh
+RUN chmod +x /run-til-midnight.sh
+
+RUN apt-get update && \
+	apt-get install -y ftp && \
+	apt-get clean
 
 HEALTHCHECK --timeout=20s --retries=10 \
 	CMD mysqladmin ping -h localhost -u ${MYSQL_USER} -p${MYSQL_PASSWORD}
 
 EXPOSE 3306
+CMD ["/run-til-midnight.sh", "mysqld"]

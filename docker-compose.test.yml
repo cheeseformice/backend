@@ -10,6 +10,9 @@ services:
       - MYSQL_DATABASE=${DB}
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASS}
+      - BACKUP_HOST=${BACKUP_HOST}
+      - BACKUP_USER=${BACKUP_USER}
+      - BACKUP_PASS=${BACKUP_PASS}
 
   mockupdb:
     build: ./mockupdb

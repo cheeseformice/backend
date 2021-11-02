@@ -23,9 +23,10 @@ pthread_t threadId;
 
 const char* tables[tablesLength] = {
   "player",
-  "tribe",
+  "tribe_stats",
 };
 volatile sig_atomic_t available[tablesLength] = {0, 0};
+volatile sig_atomic_t outdated[tablesLength] = {0, 0};
 
 const char* validStats[statsLength] = {
   "round_played",
@@ -42,6 +43,9 @@ const char* validStats[statsLength] = {
 
 int** statsStart[tablesLength];
 int** statsEnd[tablesLength];
+
+int** genStatsStart[tablesLength];
+int** genStatsEnd[tablesLength];
 
 void printfd(const char* fmt, ...) {
   time_t raw;
@@ -94,8 +98,8 @@ bool parseArguments(
   }
 
   size_t len;
-  const char* name = RedisModule_StringPtrLen(argv[1], &len);
-  *tableSlot = getTableSlot(name);
+  const char* tbl = RedisModule_StringPtrLen(argv[1], &len);
+  *tableSlot = getTableSlot(tbl);
   if (*tableSlot == -1) {
     RedisModule_ReplyWithError(ctx, "ERR unknown table");
     return false;
@@ -116,8 +120,9 @@ bool parseArguments(
   return true;
 }
 
-int reply_GETPOS(RedisModuleCtx *ctx, int position, int value) {
-  RedisModule_ReplyWithArray(ctx, 2);
+int reply_GETPOS(RedisModuleCtx *ctx, int outdated, int position, int value) {
+  RedisModule_ReplyWithArray(ctx, 3);
+  RedisModule_ReplyWithLongLong(ctx, outdated);
   RedisModule_ReplyWithLongLong(ctx, position);
   return RedisModule_ReplyWithLongLong(ctx, value);
 }
@@ -148,13 +153,13 @@ int cmd_GETPOS(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
       r = m - 1;
 
     } else {
-      return reply_GETPOS(ctx, m * perIndex, ptr[m]);
+      return reply_GETPOS(ctx, outdated[slot], m * perIndex, ptr[m]);
     }
   }
 
   // r is in the least number greater than stat, which is what we are looking for
   r = max(r, 0);
-  return reply_GETPOS(ctx, r * perIndex, ptr[r]);
+  return reply_GETPOS(ctx, outdated[slot], r * perIndex, ptr[r]);
 }
 
 /* RANKING.GETPAGE name start */
@@ -218,8 +223,8 @@ bool loadIndex(int slot, int i, const char* path) {
   fread(content, 1, size, f);
   fclose(f);
 
-  statsStart[slot][i] = content;
-  statsEnd[slot][i] = content + (size / sizeof(int));
+  genStatsStart[slot][i] = content;
+  genStatsEnd[slot][i] = content + (size / sizeof(int));
   return true;
 }
 
@@ -252,24 +257,31 @@ void saveIndices(int slot) {
 }
 
 bool allocateParentArrays(int slot) {
-  statsStart[slot] = (int**) malloc(statsLength * sizeof(int*));
-  if (statsStart[slot] == NULL) {
+  genStatsStart[slot] = (int**) malloc(statsLength * sizeof(int*));
+  if (genStatsStart[slot] == NULL) {
     fprintf(stderr, "failed to allocate memory for indices for %s.\n", tables[slot]);
     return false;
   }
 
-  statsEnd[slot] = (int**) malloc(statsLength * sizeof(int*));
+  genStatsEnd[slot] = (int**) malloc(statsLength * sizeof(int*));
   if (statsEnd[slot] == NULL) {
     fprintf(stderr, "failed to allocate memory for indices for %s.\n", tables[slot]);
-    free(statsStart[slot]);
+    free(genStatsStart[slot]);
     return false;
   }
 
   return true;
 }
 
+void moveGeneratedIndices(int slot) {
+  statsStart[slot] = genStatsStart[slot];
+  statsEnd[slot] = genStatsEnd[slot];
+  outdated[slot] = 0;
+}
+
 bool generateIndices(MYSQL *con, int slot) {
   printfd("generating indices\n");
+  outdated[slot] = 1;
 
   // on success, allocates statsStart, statsEnd, all children arrays and returns true
   // on failure, prints error and returns false. none of the arrays are allocated after that
@@ -293,13 +305,13 @@ bool generateIndices(MYSQL *con, int slot) {
 
   // allocate children arrays
   for (int i = 0; i < statsLength; i++) {
-    statsStart[slot][i] = (int*) malloc(count * sizeof(int));
+    genStatsStart[slot][i] = (int*) malloc(count * sizeof(int));
 
-    if (statsStart[slot][i] == NULL) {
+    if (genStatsStart[slot][i] == NULL) {
       fprintf(stderr, "failed to allocate memory for indices.\n");
       // could not allocate more memory, so free what we already had
       for (int j = 0; j < i; j++)
-        free(statsStart[slot][j]);
+        free(genStatsStart[slot][j]);
       goto error;
     }
   }
@@ -349,7 +361,7 @@ bool generateIndices(MYSQL *con, int slot) {
 
     printfd("generating indices for %s\n", name);
     // fetch all rows
-    int* ptr = statsStart[slot][i];
+    int* ptr = genStatsStart[slot][i];
     while (mysql_stmt_fetch(stmt) == 0) {
       if (isNull || statValue == 0) {
         *ptr = 0;
@@ -371,7 +383,7 @@ nextStat: ;
       stmtError(stmt);
     } else {
       printfd("index generation for %s successful\n", name);
-      statsEnd[slot][i] = ptr;
+      genStatsEnd[slot][i] = ptr;
     }
 
     // before going to the next stat, we need to cleanup
@@ -382,23 +394,24 @@ nextStat: ;
   }
 
   // if everything goes smoothly, we just save the indices in disk & return true
+  moveGeneratedIndices(slot);
   saveIndices(slot);
   return true;
 error:
   if (setupIndices) {
     // indices were setup, we need to free everything
-    freeIndices(slot);
-  } else {
-    // indices weren't setup, so we just have to free the parent arrays
-    free(statsStart[slot]);
-    free(statsEnd[slot]);
+    for (int i = 0; i < statsLength; i++)
+      free(genStatsStart[slot][i]);
   }
+  free(genStatsStart[slot]);
+  free(genStatsEnd[slot]);
 
   return false;
 }
 
 void *indexGenerator(void *arg) {
   bool isFirstRun = true;
+  bool errorOnLoad = false;
 
   while (1) {
     if (isFirstRun) {
@@ -425,26 +438,27 @@ void *indexGenerator(void *arg) {
         }
 
         if (error > -1) {
+          errorOnLoad = true;
+          printfd("indices for %s couldn't load\n", tables[slot]);
           break;
         }
+        moveGeneratedIndices(slot);
+        available[slot] = 1;
+
+        printfd("indices for %s loaded successfully\n", tables[slot]);
       }
 
       if (error == -1) {
-        printfd("indices loaded successfully\n");
-        for (uint8_t slot = 0; slot < tablesLength; slot++)
-          available[slot] = 1;
+        printfd("all indices loaded successfully\n");
         continue; // sleep until needed
       }
 
       // gotta free what we already had
-      for (int i = 0; i < slot; i++) {
-        freeIndices(i);
-      }
       for (int i = 0; i < error; i++)
-        free(statsStart[slot][i]);
+        free(genStatsStart[slot][i]);
 
-      free(statsStart[slot]);
-      free(statsEnd[slot]);
+      free(genStatsStart[slot]);
+      free(genStatsEnd[slot]);
 
       // now try to generate indices
 
@@ -490,9 +504,17 @@ void *indexGenerator(void *arg) {
     if (con == NULL)
       continue;
 
-    for (uint8_t slot = 0; slot < tablesLength; slot++)
-      if (generateIndices(con, slot))
-        available[slot] = 1;
+    if (errorOnLoad) {
+      // already loaded a couple tables, let's just generate the missing ones
+      for (uint8_t slot = 0; slot < tablesLength; slot++)
+        if (available[slot] == 0)
+          if (generateIndices(con, slot))
+            available[slot] = 1;
+    } else {
+      for (uint8_t slot = 0; slot < tablesLength; slot++)
+        if (generateIndices(con, slot))
+          available[slot] = 1;
+    }
 
     mysql_close(con);
   }
@@ -505,11 +527,10 @@ void onShutdown(void) {
   printfd("shutting down module\n");
 
   pthread_cancel(threadId);
-  if (available == 1) {
-    printfd("free indices on unload\n");
-    for (uint8_t slot = 0; slot < tablesLength; slot++)
+  printfd("free indices on unload\n");
+  for (uint8_t slot = 0; slot < tablesLength; slot++)
+    if (available[slot])
       freeIndices(slot);
-  }
   mysql_library_end();
 }
 

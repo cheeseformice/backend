@@ -116,7 +116,13 @@ router.get("/tribes", lookup("tribe"));
 
 router.get("/position/:field", (req, res) => {
 	let { field } = req.params;
-	let { value } = req.query;
+	let { entity, value } = req.query;
+
+	if (!entity) {
+		entity = "player";
+	} else if (entity !== "player" && entity !== "tribe") {
+		return writeError(res, 400, "Invalid entity (must be either `player` or `tribe`)")
+	}
 
 	value = parseInt(value);
 	if (isNaN(value)) {
@@ -127,8 +133,8 @@ router.get("/position/:field", (req, res) => {
 		return writeError(res, 400, "The given field is not rankable.");
 	}
 
-	service.request("lookup", "player-position", {
-		field, value
+	service.request("lookup", "position", {
+		field, value, for_player: entity === "player"
 	}, (result) => {
 		if (result.type == "simple") {
 			res.send(result.content);

@@ -264,7 +264,7 @@ bool allocateParentArrays(int slot) {
   }
 
   genStatsEnd[slot] = (int**) malloc(statsLength * sizeof(int*));
-  if (statsEnd[slot] == NULL) {
+  if (genStatsEnd[slot] == NULL) {
     fprintf(stderr, "failed to allocate memory for indices for %s.\n", tables[slot]);
     free(genStatsStart[slot]);
     return false;

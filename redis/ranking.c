@@ -14,12 +14,18 @@
 #define stmtError(stmt) fprintf(stderr, "%s\n", mysql_stmt_error(stmt));
 #define getenvdef(var,default) getenv(var) ? getenv(var) : default;
 
+#define tablesLength 2
 #define statsLength 10
 #define perIndex 39
 
 volatile sig_atomic_t didShutdown = 0;
-volatile sig_atomic_t available = 0;
 pthread_t threadId;
+
+const char* tables[tablesLength] = {
+  "player",
+  "tribe",
+};
+volatile sig_atomic_t available[tablesLength] = {0, 0};
 
 const char* validStats[statsLength] = {
   "round_played",
@@ -34,8 +40,8 @@ const char* validStats[statsLength] = {
   "score_overall",
 };
 
-int** statsStart;
-int** statsEnd;
+int** statsStart[tablesLength];
+int** statsEnd[tablesLength];
 
 void printfd(const char* fmt, ...) {
   time_t raw;
@@ -58,6 +64,13 @@ int max(int a, int b) {
   return a >= b ? a : b;
 }
 
+int getTableSlot(const char* tbl) {
+  for (uint8_t slot = 0; slot < tablesLength; slot++)
+    if (strcmp(tbl, tables[slot]) == 0)
+      return slot;
+  return -1;
+}
+
 int getStatIndex(const char* name) {
   for (uint8_t i = 0; i < statsLength; i++)
     if (strcmp(name, validStats[i]) == 0)
@@ -67,28 +80,36 @@ int getStatIndex(const char* name) {
 
 bool parseArguments(
   RedisModuleCtx *ctx, RedisModuleString **argv, int argc,
-  int *statIndex, long long *stat
+  int *tableSlot, int *statIndex, long long *stat
 ) {
-  if (available == 0) {
-    RedisModule_ReplyWithError(ctx, "ERR currently unavailable");
-    return false;
-  }
 
-  if (argc != 3) {
+  if (argc != 4) {
     RedisModule_WrongArity(ctx);
     return false;
   }
 
-  if (RedisModule_StringToLongLong(argv[2], stat) != REDISMODULE_OK) {
+  if (RedisModule_StringToLongLong(argv[3], stat) != REDISMODULE_OK) {
     RedisModule_ReplyWithError(ctx, "ERR invalid stat value");
     return false;
   }
 
   size_t len;
   const char* name = RedisModule_StringPtrLen(argv[1], &len);
+  *tableSlot = getTableSlot(name);
+  if (*tableSlot == -1) {
+    RedisModule_ReplyWithError(ctx, "ERR unknown table");
+    return false;
+  }
+
+  const char* name = RedisModule_StringPtrLen(argv[2], &len);
   *statIndex = getStatIndex(name);
   if (*statIndex == -1) {
     RedisModule_ReplyWithError(ctx, "ERR unknown stat");
+    return false;
+  }
+
+  if (available[*tableSlot] == 0) {
+    RedisModule_ReplyWithError(ctx, "ERR currently unavailable");
     return false;
   }
 
@@ -104,13 +125,14 @@ int reply_GETPOS(RedisModuleCtx *ctx, int position, int value) {
 /* RANKING.GETPOS name stat */
 // Returns approximate leaderboard position of stat
 int cmd_GETPOS(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  int slot;
   int statIndex;
   long long stat;
-  if (!parseArguments(ctx, argv, argc, &statIndex, &stat))
+  if (!parseArguments(ctx, argv, argc, &slot, &statIndex, &stat))
     return REDISMODULE_OK;
 
-  int* ptr = statsStart[statIndex];
-  int* end = statsEnd[statIndex];
+  int* ptr = statsStart[slot][statIndex];
+  int* end = statsEnd[slot][statIndex];
 
   int l = 0;
   int r = end - ptr - 1;
@@ -138,13 +160,14 @@ int cmd_GETPOS(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 /* RANKING.GETPAGE name start */
 // Returns an approximate of the value that the row may have
 int cmd_GETPAGE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  int slot;
   int statIndex;
   long long startRow;
-  if (!parseArguments(ctx, argv, argc, &statIndex, &startRow))
+  if (!parseArguments(ctx, argv, argc, &slot, &statIndex, &startRow))
     return REDISMODULE_OK;
 
-  int* ptr = statsStart[statIndex] + startRow / perIndex;
-  int* end = statsEnd[statIndex];
+  int* ptr = statsStart[slot][statIndex] + startRow / perIndex;
+  int* end = statsEnd[slot][statIndex];
 
   if (ptr >= end)
     return RedisModule_ReplyWithError(ctx, "ERR page too far");
@@ -175,15 +198,15 @@ MYSQL* connectToMySQL(void) {
   return con;
 }
 
-void freeIndices(void) {
+void freeIndices(int slot) {
   for (int i = 0; i < statsLength; i++)
-    free(statsStart[i]);
+    free(statsStart[slot][i]);
 
-  free(statsStart);
-  free(statsEnd);
+  free(statsStart[slot]);
+  free(statsEnd[slot]);
 }
 
-bool loadIndex(int i, const char* path) {
+bool loadIndex(int slot, int i, const char* path) {
   FILE *f = fopen(path, "rb");
   if (f == NULL) return false;
 
@@ -195,57 +218,57 @@ bool loadIndex(int i, const char* path) {
   fread(content, 1, size, f);
   fclose(f);
 
-  statsStart[i] = content;
-  statsEnd[i] = content + (size / sizeof(int));
+  statsStart[slot][i] = content;
+  statsEnd[slot][i] = content + (size / sizeof(int));
   return true;
 }
 
-bool saveIndex(int i, char* path) {
+bool saveIndex(int slot, int i, char* path) {
   FILE *f = fopen(path, "wb");
   if (f == NULL) {
     printfd("could not write index %d", i);
     return false;
   }
 
-  fwrite((char*) statsStart[i], sizeof(int), statsEnd[i] - statsStart[i], f);
+  fwrite((char*) statsStart[slot][i], sizeof(int), statsEnd[slot][i] - statsStart[slot][i], f);
   fclose(f);
 
   printfd("index %d written", i);
   return true;
 }
 
-void saveIndices(void) {
-  const char* path = getenvdef("INDEX_SAVE", "/data/rank_index%d.bin");
-  printfd("saving indices to %s\n", path);
+void saveIndices(int slot) {
+  const char* path = getenvdef("INDEX_SAVE", "/data/rank_%s_index%d.bin");
+  printfd("saving indices to %s (%s)\n", path, tables[slot]);
 
   for (int i = 0; i < statsLength; i++) {
     char buffer[256];
-    sprintf(buffer, path, i);
+    sprintf(buffer, path, tables[slot], i);
 
-    saveIndex(i, buffer);
+    saveIndex(slot, i, buffer);
   }
 
   printfd("indices saved\n");
 }
 
-bool allocateParentArrays(void) {
-  statsStart = (int**) malloc(statsLength * sizeof(int*));
-  if (statsStart == NULL) {
-    fprintf(stderr, "failed to allocate memory for indices.\n");
+bool allocateParentArrays(int slot) {
+  statsStart[slot] = (int**) malloc(statsLength * sizeof(int*));
+  if (statsStart[slot] == NULL) {
+    fprintf(stderr, "failed to allocate memory for indices for %s.\n", tables[slot]);
     return false;
   }
 
-  statsEnd = (int**) malloc(statsLength * sizeof(int*));
-  if (statsEnd == NULL) {
-    fprintf(stderr, "failed to allocate memory for indices.\n");
-    free(statsStart);
+  statsEnd[slot] = (int**) malloc(statsLength * sizeof(int*));
+  if (statsEnd[slot] == NULL) {
+    fprintf(stderr, "failed to allocate memory for indices for %s.\n", tables[slot]);
+    free(statsStart[slot]);
     return false;
   }
 
   return true;
 }
 
-bool generateIndices(MYSQL *con) {
+bool generateIndices(MYSQL *con, int slot) {
   printfd("generating indices\n");
 
   // on success, allocates statsStart, statsEnd, all children arrays and returns true
@@ -253,7 +276,9 @@ bool generateIndices(MYSQL *con) {
   bool setupIndices = false;
 
   // check how many numbers we need to store
-  if (mysql_query(con, "SELECT COUNT(*) FROM `player`;") > 0) {
+  char buffer[256];
+  sprintf(buffer, "SELECT COUNT(*) FROM `%s`;", tables[slot]);
+  if (mysql_query(con, buffer) > 0) {
     mysqlError(con);
     goto error;
   }
@@ -264,17 +289,17 @@ bool generateIndices(MYSQL *con) {
   mysql_free_result(countRes);
 
   // allocate parent arrays
-  if (!allocateParentArrays()) return false;
+  if (!allocateParentArrays(slot)) return false;
 
   // allocate children arrays
   for (int i = 0; i < statsLength; i++) {
-    statsStart[i] = (int*) malloc(count * sizeof(int));
+    statsStart[slot][i] = (int*) malloc(count * sizeof(int));
 
-    if (statsStart[i] == NULL) {
+    if (statsStart[slot][i] == NULL) {
       fprintf(stderr, "failed to allocate memory for indices.\n");
       // could not allocate more memory, so free what we already had
       for (int j = 0; j < i; j++)
-        free(statsStart[j]);
+        free(statsStart[slot][j]);
       goto error;
     }
   }
@@ -286,10 +311,12 @@ bool generateIndices(MYSQL *con) {
     const char* name = validStats[i];
 
     // prepare mysql query
-    char query[41 + strlen(name) * 2];
+    char query[35 + strlen(tables[slot]) + strlen(name) * 2];
     strcpy(query, "SELECT `");
     strcat(query, name);
-    strcat(query, "` FROM `player` ORDER BY `");
+    strcat(query, "` FROM `");
+    strcat(query, tables[slot]);
+    strcat(query, "` ORDER BY `");
     strcat(query, name);
     strcat(query, "` DESC");
 
@@ -322,7 +349,7 @@ bool generateIndices(MYSQL *con) {
 
     printfd("generating indices for %s\n", name);
     // fetch all rows
-    int* ptr = statsStart[i];
+    int* ptr = statsStart[slot][i];
     while (mysql_stmt_fetch(stmt) == 0) {
       if (isNull || statValue == 0) {
         *ptr = 0;
@@ -344,7 +371,7 @@ nextStat: ;
       stmtError(stmt);
     } else {
       printfd("index generation for %s successful\n", name);
-      statsEnd[i] = ptr;
+      statsEnd[slot][i] = ptr;
     }
 
     // before going to the next stat, we need to cleanup
@@ -355,16 +382,16 @@ nextStat: ;
   }
 
   // if everything goes smoothly, we just save the indices in disk & return true
-  saveIndices();
+  saveIndices(slot);
   return true;
 error:
   if (setupIndices) {
     // indices were setup, we need to free everything
-    freeIndices();
+    freeIndices(slot);
   } else {
     // indices weren't setup, so we just have to free the parent arrays
-    free(statsStart);
-    free(statsEnd);
+    free(statsStart[slot]);
+    free(statsEnd[slot]);
   }
 
   return false;
@@ -378,35 +405,46 @@ void *indexGenerator(void *arg) {
       isFirstRun = false;
       printfd("index generator boot\n");
 
-      // try to load indices from disk first
-      if (!allocateParentArrays()) continue; // sleep until needed
-
-      const char* path = getenvdef("INDEX_SAVE", "/data/rank_index%d.bin");
+      uint8_t slot;
       int error = -1;
-      printfd("loading indices from %s\n", path);
-      for (int i = 0; i < statsLength; i++) {
-        char buffer[256];
-        sprintf(buffer, path, i);
+      for (slot = 0; slot < tablesLength; slot++) {
+        // try to load indices from disk first
+        if (!allocateParentArrays(slot)) continue; // sleep until needed
 
-        if (!loadIndex(i, buffer)) {
-          printfd("could not load indices, starting index generation\n");
-          error = i;
+        const char* path = getenvdef("INDEX_SAVE", "/data/rank_%s_index%d.bin");
+        printfd("loading indices from %s\n", path);
+        for (int i = 0; i < statsLength; i++) {
+          char buffer[256];
+          sprintf(buffer, path, tables[slot], i);
+
+          if (!loadIndex(slot, i, buffer)) {
+            printfd("could not load indices, starting index generation\n");
+            error = i;
+            break;
+          }
+        }
+
+        if (error > -1) {
           break;
         }
       }
 
       if (error == -1) {
         printfd("indices loaded successfully\n");
-        available = 1;
+        for (uint8_t slot = 0; slot < tablesLength; slot++)
+          available[slot] = 1;
         continue; // sleep until needed
       }
 
       // gotta free what we already had
+      for (int i = 0; i < slot; i++) {
+        freeIndices(i);
+      }
       for (int i = 0; i < error; i++)
-        free(statsStart[i]);
+        free(statsStart[slot][i]);
 
-      free(statsStart);
-      free(statsEnd);
+      free(statsStart[slot]);
+      free(statsEnd[slot]);
 
       // now try to generate indices
 
@@ -432,13 +470,18 @@ void *indexGenerator(void *arg) {
 
       printfd("wake up\n");
 
-      bool wasAvailable = available == 1;
-      available = 0;
+      bool wasAvailable[tablesLength];
+      for (uint8_t slot = 0; slot < tablesLength; slot++) {
+        wasAvailable[slot] = available[slot] == 1;
+        available[slot] = 0;
+      }
       sleep(5); // let other threads finish using indices before modifying them
 
-      if (wasAvailable) {
-        printfd("free indices after wakeup\n");
-        freeIndices();
+      printfd("free indices after wakeup\n");
+      for (uint8_t slot = 0; slot < tablesLength; slot++) {
+        if (wasAvailable[slot]) {
+          freeIndices(slot);
+        }
       }
     }
 
@@ -447,8 +490,9 @@ void *indexGenerator(void *arg) {
     if (con == NULL)
       continue;
 
-    if (generateIndices(con))
-      available = 1;
+    for (uint8_t slot = 0; slot < tablesLength; slot++)
+      if (generateIndices(con, slot))
+        available[slot] = 1;
 
     mysql_close(con);
   }
@@ -463,7 +507,8 @@ void onShutdown(void) {
   pthread_cancel(threadId);
   if (available == 1) {
     printfd("free indices on unload\n");
-    freeIndices();
+    for (uint8_t slot = 0; slot < tablesLength; slot++)
+      freeIndices(slot);
   }
   mysql_library_end();
 }

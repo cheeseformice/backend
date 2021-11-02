@@ -422,18 +422,20 @@ void *indexGenerator(void *arg) {
       int error = -1;
       for (slot = 0; slot < tablesLength; slot++) {
         // try to load indices from disk first
-        if (!allocateParentArrays(slot)) continue; // sleep until needed
+        if (!allocateParentArrays(slot)) {
+          error = 0;
+        } else {
+          const char* path = getenvdef("INDEX_SAVE", "/data/rank_%s_index%d.bin");
+          printfd("loading indices from %s\n", path);
+          for (int i = 0; i < statsLength; i++) {
+            char buffer[256];
+            sprintf(buffer, path, tables[slot], i);
 
-        const char* path = getenvdef("INDEX_SAVE", "/data/rank_%s_index%d.bin");
-        printfd("loading indices from %s\n", path);
-        for (int i = 0; i < statsLength; i++) {
-          char buffer[256];
-          sprintf(buffer, path, tables[slot], i);
-
-          if (!loadIndex(slot, i, buffer)) {
-            printfd("could not load indices, starting index generation\n");
-            error = i;
-            break;
+            if (!loadIndex(slot, i, buffer)) {
+              printfd("could not load indices, starting index generation\n");
+              error = i;
+              break;
+            }
           }
         }
 

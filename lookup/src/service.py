@@ -7,7 +7,7 @@ from typing import Tuple
 from shared.pyservice import Service
 from shared.roles import to_cfm_roles, to_tfm_roles
 
-from shared.models import roles, player, tribe, member, periods
+from shared.models import roles, player, tribe, tribe_stats, member, periods
 from aiomysql.sa import create_engine
 from sqlalchemy import and_, desc, func
 from sqlalchemy.sql import select
@@ -188,6 +188,7 @@ async def lookup_player(request):
 			if request.period == "overall":
 				response = await service.redis.send(
 					"ranking.getpage",
+					"player",
 					db_field,
 					offset
 				)
@@ -340,7 +341,26 @@ async def lookup_tribe(request):
 			)
 		)
 
-		query = query.order_by(desc(getattr(period.c, db_field)))
+		field = getattr(period.c, db_field)
+		if request.period == "overall":
+			response = await service.redis.send(
+				"ranking.getpage",
+				"tribe",
+				db_field,
+				offset
+			)
+			if isinstance(response, list):
+				offset -= response[0]
+				query = query.where(field <= response[1])
+
+			else:
+				if offset > 10000:
+					await request.reject(
+						"BadRequest",
+						"The page is too far."
+					)
+					return
+		query = query.order_by(desc(field))
 
 		count_query = (
 			select(func.count().label("total"))
@@ -407,8 +427,9 @@ async def lookup_tribe(request):
 	})
 
 
-@service.on_request("player-position")
-async def get_player_position(request):
+@service.on_request("position")
+async def get_position(request):
+	for_player = request.for_player
 	field, value = request.field, request.value
 
 	if field not in rankable_fields:
@@ -421,23 +442,35 @@ async def get_player_position(request):
 
 	db_field = rankable_fields[field]
 
-	response = await service.redis.send("ranking.getpos", db_field, value)
+	response = await service.redis.send(
+		"ranking.getpos",
+		"player" if for_player else "tribe",
+		db_field,
+		value
+	)
 	if not isinstance(response, list):
 		await request.reject("Unavailable")
 		return
 
-	approximate, boundary = response
-	field = getattr(player.c, db_field)
+	tbl = player if for_player else tribe_stats
+	outdated, approximate, boundary = response
+	field = getattr(tbl.c, db_field)
 	async with service.db.acquire() as conn:
+		if approximate <= 10000:
+			condition = and_(field <= boundary, field >= value)
+		else:
+			condition = and_(field < boundary, field > value)
 		result = await conn.execute(
 			select(func.count().label("count"))
-			.select_from(player)
-			.where(and_(field < boundary, field > value))
+			.select_from(tbl)
+			.where(condition)
 		)
 		count = await result.first()
 
 	await request.send({
-		"position": max(1, count.count + approximate)
+		"position": max(1, count.count + approximate),
+		"accurate": approximate <= 10000,
+		"outdated": outdated == 1,
 	})
 
 

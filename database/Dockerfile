@@ -11,8 +11,10 @@ ENV MYSQL_DATABASE=api_data \
 
 ADD *.sql /docker-entrypoint-initdb.d/
 ADD /backup.sh /
+ADD /transfer.sh /
 ADD /run-til-midnight.sh /
 RUN chmod +x /backup.sh
+RUN chmod +x /transfer.sh
 RUN chmod +x /run-til-midnight.sh
 
 HEALTHCHECK --timeout=20s --retries=10 \

@@ -345,7 +345,7 @@ async def lookup_tribe(request):
 		if request.period == "overall":
 			response = await service.redis.send(
 				"ranking.getpage",
-				"tribe",
+				"tribe_stats",
 				db_field,
 				offset
 			)
@@ -444,7 +444,7 @@ async def get_position(request):
 
 	response = await service.redis.send(
 		"ranking.getpos",
-		"player" if for_player else "tribe",
+		"player" if for_player else "tribe_stats",
 		db_field,
 		value
 	)

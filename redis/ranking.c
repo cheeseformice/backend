@@ -231,14 +231,14 @@ bool loadIndex(int slot, int i, const char* path) {
 bool saveIndex(int slot, int i, char* path) {
   FILE *f = fopen(path, "wb");
   if (f == NULL) {
-    printfd("could not write index %d", i);
+    printfd("could not write index %d\n", i);
     return false;
   }
 
   fwrite((char*) statsStart[slot][i], sizeof(int), statsEnd[slot][i] - statsStart[slot][i], f);
   fclose(f);
 
-  printfd("index %d written", i);
+  printfd("index %d written\n", i);
   return true;
 }
 
@@ -508,6 +508,7 @@ void *indexGenerator(void *arg) {
 
     if (errorOnLoad) {
       // already loaded a couple tables, let's just generate the missing ones
+      errorOnLoad = false;
       for (uint8_t slot = 0; slot < tablesLength; slot++)
         if (available[slot] == 0)
           if (generateIndices(con, slot))

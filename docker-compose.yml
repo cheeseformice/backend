@@ -51,7 +51,7 @@ services:
       - DB_IP
       - DB_USER
       - DB_PASS
-      - INDEX_SAVE=/data-rank/index%d.bin
+      - INDEX_SAVE=/data-rank/index_%s_%d.bin
 
   account:
     build: ./account

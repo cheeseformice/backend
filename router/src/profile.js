@@ -117,6 +117,12 @@ function pushProfile(type, content) {
 
 router.get("/players/:idOrName", (req, res) => {
 	// Someone wants a player profile
+	const auth = checkAuthorization(req, res);
+	if (auth === undefined) { return; } // error written
+	const hideRequest = !!auth && (auth.tfm_roles.includes("admin") ||
+								   auth.tfm_roles.includes("mod") ||
+								   auth.tfm_roles.includes("sentinel"));
+
 	const { idOrName } = req.params;
 
 	// Prepare what we're gonna send to the service
@@ -153,7 +159,7 @@ router.get("/players/:idOrName", (req, res) => {
 	// Then return whatever it replies to the user
 	service.request("profile", "player", request, (result) => {
 		if (result.type == "simple") {
-			if (!!result.content.id) {
+			if (!hideRequest && !!result.content.id) {
 				pushProfile("player", {
 					id: result.content.id,
 					name: result.content.name,
@@ -171,6 +177,12 @@ router.get("/players/:idOrName", (req, res) => {
 
 router.get("/tribes/:idOrName", (req, res) => {
 	// Someone wants a tribe profile
+	const auth = checkAuthorization(req, res);
+	if (auth === undefined) { return; } // error written
+	const hideRequest = !!auth && (auth.tfm_roles.includes("admin") ||
+								   auth.tfm_roles.includes("mod") ||
+								   auth.tfm_roles.includes("sentinel"));
+
 	const { idOrName } = req.params;
 
 	const request = {
@@ -201,7 +213,7 @@ router.get("/tribes/:idOrName", (req, res) => {
 	// Then return whatever it replies to the user
 	service.request("profile", "tribe", request, (result) => {
 		if (result.type == "simple") {
-			if (!!result.content.id) {
+			if (!!hideRequest && !result.content.id) {
 				pushProfile("tribe", {
 					id: result.content.id,
 					name: result.content.name,

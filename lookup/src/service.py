@@ -308,19 +308,14 @@ async def lookup_player(request):
 		response.append(row_resp)
 
 		if request.order:
-			if request.test_server:
-				for db_field in relation:
-					value = getattr(row, db_field)
-					if db_field.startswith("score_"):
-						key = "score"
-					else:
-						key = aliases.get(db_field, db_field)
+			for db_field in relation:
+				value = getattr(row, db_field)
+				if db_field.startswith("score_"):
+					key = "score"
+				else:
+					key = aliases.get(db_field, db_field)
 
-					row_resp[key] = value
-
-			else:
-				for name, db_field in rankable_fields.items():
-					row_resp[name] = getattr(row, db_field)
+				row_resp[key] = value
 
 	await request.send({
 		"total": total.total,
@@ -422,19 +417,14 @@ async def lookup_tribe(request):
 		response.append(row_resp)
 
 		if request.order:
-			if request.test_server:
-				for db_field in relation:
-					value = getattr(row, db_field)
-					if db_field.startswith("score_"):
-						key = "score"
-					else:
-						key = aliases.get(db_field, db_field)
+			for db_field in relation:
+				value = getattr(row, db_field)
+				if db_field.startswith("score_"):
+					key = "score"
+				else:
+					key = aliases.get(db_field, db_field)
 
-					row_resp[key] = value
-
-			else:
-				for name, db_field in rankable_fields.items():
-					row_resp[name] = getattr(row, db_field)
+				row_resp[key] = value
 
 	await request.send({
 		"total": total.total,

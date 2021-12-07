@@ -107,7 +107,6 @@ function lookup(what) {
 			limit: limit,
 			tribe: null,
 			period: period,
-			test_server: req.hostname !== "cheese.formice.com",
 		}, handleBasicServiceResult(res));
 	};
 }

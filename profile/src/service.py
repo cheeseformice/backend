@@ -5,8 +5,9 @@ from shared.pyservice import Service
 
 from datetime import datetime, timedelta
 from shared.models import roles, player, player_changelog, player_privacy, \
-	stats, tribe, member, tribe_stats, tribe_changelog
+	stats, tribe, member, tribe_stats, tribe_changelog, disqualified
 from shared.schemas import as_dict
+from shared.qualification import can_qualify
 
 from aiomysql.sa import create_engine
 from sqlalchemy import and_, desc, asc
@@ -201,6 +202,9 @@ async def profile_player(request):
 
 				tribe.c.id.label("tribe_id"),
 				tribe.c.name.label("tribe_name"),
+
+				disqualified.c.cfm.label("disq_cfm"),
+				disqualified.c.tfm.label("disq_tfm"),
 			)
 			.select_from(
 				player
@@ -210,6 +214,7 @@ async def profile_player(request):
 				.outerjoin(soulmate, soulmate.c.id == member.c.id_spouse)
 				.outerjoin(sm_roles, sm_roles.c.id == soulmate.c.id)
 				.outerjoin(tribe, tribe.c.id == member.c.id_tribe)
+				.outerjoin(disqualified, disqualified.c.id == player.c.id)
 			)
 			.where(query)
 		)
@@ -230,6 +235,14 @@ async def profile_player(request):
 		profile["soulmate"] = None
 	if row.tribe_id is None:
 		profile["tribe"] = None
+
+	disq_tfm = row.disq_tfm
+	if (row.tfm_roles is not None and row.tfm_roles > 0) \
+		or row.name.endswith("#0095"):
+		disq_tfm = 0
+
+	profile["disqualified"] = (row.disq_cfm or 0) + (disq_tfm or 0) > 0
+	profile["can_qualify"] = can_qualify(row)
 
 	if period is not None:
 		profile["period"] = period

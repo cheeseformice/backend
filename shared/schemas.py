@@ -1,5 +1,7 @@
 from collections import namedtuple
 from shared.roles import to_cfm_roles, to_tfm_roles
+from enum import IntEnum
+from datetime import datetime
 
 
 SchemaField = namedtuple(
@@ -126,6 +128,9 @@ schemas = {
 
 		"shop": Require("Shop"),
 		"stats": Require("AllStats"),
+
+		"disqualified": Field("disqualified", False),
+		"can_qualify": Field("can_qualify", False),
 	},
 
 	"TribeMemberCount": {
@@ -154,6 +159,13 @@ schemas = {
 	"AccountInformation": {
 		"player": Require("BasicPlayer"),
 		"privacy": Require("Privacy"),
+		"disqualified": Field("disqualified", False),
+		"can_qualify": Field("can_qualify", False),
+	},
+
+	"CFMDisqualificationInformation": {
+		"moderator": Require("BasicPlayer", "mod_"),
+		"reason": Field("reason", ""),
 	},
 }
 

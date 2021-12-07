@@ -279,7 +279,7 @@ void moveGeneratedIndices(int slot) {
   outdated[slot] = 0;
 }
 
-bool generateIndices(MYSQL *con, int slot) {
+bool generateIndices(MYSQL *con, int slot, const char* qualificationQuery) {
   printfd("generating indices\n");
   outdated[slot] = 1;
 
@@ -323,14 +323,26 @@ bool generateIndices(MYSQL *con, int slot) {
     const char* name = validStats[i];
 
     // prepare mysql query
-    char query[35 + strlen(tables[slot]) + strlen(name) * 2];
-    strcpy(query, "SELECT `");
-    strcat(query, name);
-    strcat(query, "` FROM `");
-    strcat(query, tables[slot]);
-    strcat(query, "` ORDER BY `");
-    strcat(query, name);
-    strcat(query, "` DESC");
+    char* fmt = (char*) malloc(1024);
+    if (slot == 0) {
+      char* preFmt = "SELECT `p`.`%%s` "
+                     "FROM `%%s` as `p` "
+                     "LEFT JOIN `disqualified` as `d` "
+                     "ON `d`.`id` = `p`.`id` "
+                     "WHERE `d`.`id` IS NULL%s "
+                     "ORDER BY `p`.`%%s` DESC";
+      int length = strlen(preFmt) + 1 + strlen(qualificationQuery);
+      snprintf(fmt, length, preFmt, qualificationQuery);
+    } else if (slot == 1) {
+      fmt = "SELECT `%s` FROM `%s` ORDER BY `%s` DESC";
+    } else {
+      printfd("unknown table slot %d", slot);
+      goto error;
+    }
+    int length = strlen(fmt) + 1 + strlen(tables[slot]) + strlen(name) * 2;
+    char query[length];
+    snprintf(query, length, fmt, name, tables[slot], name);
+    free(fmt);
 
     MYSQL_STMT *stmt = mysql_stmt_init(con);
     if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0) {
@@ -409,9 +421,38 @@ error:
   return false;
 }
 
+const char* getQualificationQuery() {
+  FILE* fp = fopen("/data-shared/qualification.cfg", "r");
+  if (fp == NULL)
+    return "";
+
+  char* query = (char*) malloc(sizeof(char) * 2048);
+  char* line;
+  size_t len = 0;
+  while (getline(&line, &len, fp) != -1) {
+    char field[64];
+    int min;
+    char minStr[10];
+    if (sscanf(line, "%s = %d", field, &min) == EOF) { continue; }
+
+    snprintf(minStr, 10, "%d", min);
+
+    strcat(query, " AND `p`.`");
+    strcat(query, field);
+    strcat(query, "` >= ");
+    strcat(query, minStr);
+  }
+
+  fclose(fp);
+  free(line);
+  return query;
+}
+
 void *indexGenerator(void *arg) {
   bool isFirstRun = true;
   bool errorOnLoad = false;
+  const char* qualificationQuery = getQualificationQuery();
+  printfd("using qualification query '%s'\n", qualificationQuery);
 
   while (1) {
     if (isFirstRun) {
@@ -511,11 +552,11 @@ void *indexGenerator(void *arg) {
       errorOnLoad = false;
       for (uint8_t slot = 0; slot < tablesLength; slot++)
         if (available[slot] == 0)
-          if (generateIndices(con, slot))
+          if (generateIndices(con, slot, qualificationQuery))
             available[slot] = 1;
     } else {
       for (uint8_t slot = 0; slot < tablesLength; slot++)
-        if (generateIndices(con, slot))
+        if (generateIndices(con, slot, qualificationQuery))
           available[slot] = 1;
     }
 

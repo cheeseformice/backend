@@ -59,6 +59,7 @@ services:
       - "test-redis-index:/data-rank"
       - "./redis/redis.conf:/etc/redis/redis.conf"
       - "test-redis-socket:/tmp/docker"
+      - "./shared:/data-shared"
     environment:
       - DB
       - DB_IP

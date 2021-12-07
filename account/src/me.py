@@ -1,8 +1,9 @@
 from common import service
 
 from shared.logs import PlayerLogs
-from shared.models import player, player_privacy, roles
+from shared.models import player, player_privacy, roles, disqualified
 from shared.schemas import as_dict
+from shared.qualification import can_qualify
 
 from sqlalchemy.sql import select
 from sqlalchemy.dialects.mysql import insert
@@ -26,11 +27,13 @@ async def get_me(request):
 	async with service.db.acquire() as conn:
 		result = await conn.execute(
 			select(
-				player.c.id,
-				player.c.name,
+				player,
 
 				roles.c.cfm.label("cfm_roles"),
 				roles.c.tfm.label("tfm_roles"),
+
+				disqualified.c.cfm.label("disq_cfm"),
+				disqualified.c.tfm.label("disq_tfm"),
 
 				*privacy_columns,
 			)
@@ -38,6 +41,7 @@ async def get_me(request):
 				player
 				.outerjoin(roles, roles.c.id == player.c.id)
 				.outerjoin(player_privacy, player_privacy.c.id == player.c.id)
+				.outerjoin(disqualified, disqualified.c.id == player.c.id)
 			)
 			.where(player.c.id == myself)
 		)
@@ -45,7 +49,10 @@ async def get_me(request):
 		if row is None:
 			raise Exception("Could not find authenticated user")
 
-	await request.send(as_dict("AccountInformation", row))
+	result = as_dict("AccountInformation", row)
+	result["disqualified"] = (row.disq_cfm or 0) + (row.disq_tfm or 0) > 0
+	result["can_qualify"] = can_qualify(row)
+	await request.send(result)
 
 
 @service.on_request("set-privacy")

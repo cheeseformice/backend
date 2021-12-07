@@ -38,3 +38,18 @@ CREATE TABLE `tribe_privacy` (
   `active` smallint(1) NOT NULL DEFAULT '2',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `sanctions` (
+  `player` int(11) NOT NULL,
+  `mod` int(11) NOT NULL,
+  `reason` text NOT NULL DEFAULT '',
+  PRIMARY KEY (`player`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `disqualified`(
+  `id` int(11) NOT NULL,
+  `cfm` smallint(1) NOT NULL DEFAULT '0',
+  `tfm` smallint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `cfm` (`cfm`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;

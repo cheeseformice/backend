@@ -6,8 +6,10 @@ from typing import Tuple
 
 from shared.pyservice import Service
 from shared.roles import to_cfm_roles, to_tfm_roles
+from shared.models import roles, player, tribe, tribe_stats, member, periods, \
+	disqualified
+from shared.qualification import qualification_query
 
-from shared.models import roles, player, tribe, tribe_stats, member, periods
 from aiomysql.sa import create_engine
 from sqlalchemy import and_, desc, func
 from sqlalchemy.sql import select
@@ -171,6 +173,7 @@ async def lookup_player(request):
 			.select_from(
 				select_from
 				.outerjoin(roles, roles.c.id == player.c.id)
+				.outerjoin(disqualified, disqualified.c.id == player.c.id)
 			)
 		)
 		count_query = select(func.count().label("total"))
@@ -178,7 +181,11 @@ async def lookup_player(request):
 		field = getattr(period.c, db_field)
 		if tribe is not None:
 			where = member.c.id_tribe == tribe
-			query = query.where(where)
+			query = query.where(and_(
+				where,
+				disqualified.c.id.is_(None),
+				qualification_query,
+			))
 
 			count_query = count_query.select_from(
 				period
@@ -194,7 +201,11 @@ async def lookup_player(request):
 				)
 				if isinstance(response, list):
 					offset -= response[0]
-					query = query.where(field <= response[1])
+					query = query.where(and_(
+						field <= response[1],
+						disqualified.c.id.is_(None),
+						qualification_query,
+					))
 
 				else:
 					if offset > 10000:
@@ -204,6 +215,10 @@ async def lookup_player(request):
 						)
 						return
 
+					query = query.where(and_(
+						disqualified.c.id.is_(None),
+						qualification_query,
+					))
 			count_query = count_query.select_from(period)
 
 		query = query.order_by(desc(field))

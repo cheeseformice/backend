@@ -172,6 +172,22 @@ member_changelog = sa.Table(
 )
 
 
+# Sanctions
+sanctions = sa.Table(
+	"sanctions", metadata,
+	sa.Column("player", sa.BigInteger, nullable=False, primary_key=True),
+	sa.Column("mod", sa.BigInteger, nullable=False),
+	sa.Column("reason", sa.Text, nullable=False, default=""),
+)
+
+disqualified = sa.Table(
+	"disqualified", metadata,
+	sa.Column("id", sa.BigInteger, nullable=False, primary_key=True),
+	sa.Column("cfm", sa.SmallInteger, nullable=False, default=0),
+	sa.Column("tfm", sa.SmallInteger, nullable=False, default=0),
+)
+
+
 # Periodic leaderboards
 def temp_rank_table(name):
 	return sa.Table(

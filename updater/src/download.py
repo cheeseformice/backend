@@ -538,6 +538,50 @@ class RunnerPool:
 
 		logging.debug("[{}] hash loop done".format(table.name))
 
+	@with_cursors("internal", "external")
+	async def update_disqualifications(self, inte, exte):
+		logging.debug("[disq] updating disqualifications")
+		await inte.execute("UPDATE `disqualified` SET `tfm` = 0")
+
+		logging.debug("[disq] old tfm disqualifications wiped")
+		await exte.execute(
+			"SELECT `id` FROM `player` WHERE `stats_reliability` = 2"
+		)
+		query = (
+			"INSERT INTO `disqualified` (`id`, `tfm`) \
+			VALUES (%s, 1) ON DUPLICATE KEY UPDATE `tfm` = 1"
+		)
+		while True:
+			batch = await exte.fetchmany(self.batch)
+			if not batch:
+				break
+			await inte.executemany(query, batch)
+
+		logging.debug("[disq] deleting removed cfm disqualifications")
+		await inte.execute(
+			"UPDATE \
+				`disqualified` as `d` \
+				LEFT JOIN `sanctions` as `s` ON `s`.`player` = `d`.`id` \
+			SET `d`.`cfm` = 0 \
+			WHERE \
+				`s`.`player` IS NULL AND \
+				`d`.`cfm` = 1"
+		)
+
+		logging.debug("[disq] inserting new cfm disqualifications")
+		await inte.execute(
+			"INSERT INTO `disqualified` (`id`, `cfm`) \
+			SELECT `player` as `id`, 1 as `cfm` FROM `sanctions` \
+			ON DUPLICATE KEY UPDATE `cfm` = 1"
+		)
+
+		logging.debug("[disq] deleting byproducts")
+		await inte.execute(
+			"DELETE FROM `disqualified` WHERE `cfm` = 0 AND `tfm` = 0"
+		)
+
+		logging.debug("[disq] done")
+
 	@with_cursors("internal")
 	async def post_download(self, inte, table):
 		if table.name == "player":
@@ -562,6 +606,8 @@ class RunnerPool:
 					"" if table.is_empty else "_new"
 				)
 			)
+
+			await self.update_disqualifications()
 
 		if table.is_empty:
 			return

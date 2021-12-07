@@ -1,7 +1,5 @@
 from collections import namedtuple
 from shared.roles import to_cfm_roles, to_tfm_roles
-from enum import IntEnum
-from datetime import datetime
 
 
 SchemaField = namedtuple(

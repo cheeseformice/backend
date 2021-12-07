@@ -42,6 +42,15 @@ def outfits(dress_list):
 	return dress_list.split("/")
 
 
+def as_gender(gender):
+	gender = int(gender)
+	if gender == 1:
+		return "female"
+	elif gender == 2:
+		return "male"
+	return None
+
+
 compiled_schemas = {}
 schemas = {
 	"BasicPlayer": {
@@ -117,6 +126,7 @@ schemas = {
 	"PlayerProfile": {
 		"__inherit": "BasicPlayer",
 
+		"gender": Process(Field("id_gender", 0), as_gender),
 		"title": Field("title", 0),
 		"titles": Process(Field("unlocked_titles", "0"), as_list),
 		"badges": Process(Field("badges", ""), as_list),

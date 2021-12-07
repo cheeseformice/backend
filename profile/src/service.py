@@ -191,6 +191,8 @@ async def profile_player(request):
 				player,
 				player_privacy,
 
+				member.c.id_gender,
+
 				roles.c.cfm.label("cfm_roles"),
 				roles.c.tfm.label("tfm_roles"),
 

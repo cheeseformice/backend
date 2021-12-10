@@ -167,7 +167,7 @@ function assertAuthorization(req, res, roles) {
 		}
 	}
 
-	return;
+	return auth;
 }
 
 function assertUnauthorized(req, res) {

@@ -81,7 +81,12 @@ router.post("/session", async (req, res) => {
 			if (!result.content.success) {
 				// Something went wrong
 				if (result.content.err == "InvalidCredentials") {
-					writeError(res, 401, result.content.err_msg);
+					writeError(
+						res,
+						401,
+						result.content.err_msg,
+						result.content.translation_key
+					);
 				}
 				return;
 			}
@@ -118,7 +123,12 @@ router.post("/session", async (req, res) => {
 			if (result.err == "rejected") {
 				if (result.type == "ExpiredToken" ||
 					result.type == "InvalidCredentials") {
-					writeError(res, 401, result.args[0]);
+					writeError(
+						res,
+						401,
+						result.args[0],
+						result.kwargs.translation_key
+					);
 					return;
 				}
 			}

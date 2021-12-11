@@ -27,12 +27,13 @@ const statusReasons = {
 	503: "Service unavailable",
 };
 
-function writeError(res, status, message) {
+function writeError(res, status, message, translationKey) {
 	const reason = statusReasons[status] || "";
 	const result = { status: status, success: false };
 
 	if (!!reason) { result.error = reason; }
 	if (!!message) { result.message = message; }
+	if (!!translationKey) { result.translation_key = `errors.${translationKey}`; }
 
 	res.status(status).send(result);
 }
@@ -52,13 +53,13 @@ function handleServiceError(res, result) {
 			} else if (result.type == "NotImplemented") {
 				writeError(res, 500, result.args[0]);
 			} else {
-				writeError(res, 500);
+				writeError(res, 500, result.args[0], result.kwargs.translation_key);
 			}
 			break;
 
 		case "internal":
 		default:
-			writeError(res, 500);
+			writeError(res, 500, null, "internal");
 			break;
 	}
 }

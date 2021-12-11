@@ -150,7 +150,12 @@ router.post("/@me/password", async (req, res) => {
 				if (!result.content.success) {
 					// Something went wrong
 					if (result.content.err == "InvalidCredentials") {
-						writeError(res, 401, result.content.err_msg);
+						writeError(
+							res,
+							401,
+							result.content.err_msg,
+							result.content.translation_key
+						);
 					}
 					return;
 				}

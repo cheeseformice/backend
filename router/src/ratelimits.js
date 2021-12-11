@@ -38,13 +38,13 @@ const checkRateLimit = (req, res, bucketName, param) => {
 		service.redis.get(`rate:${bucket.paramType}:${bucketName}:${param}`, (err, uses) => {
 			if (!!err) {
         console.error(err);
-        writeError(res, 500);
+        writeError(res, 500, null, "internal");
         reject(err);
 				return;
 			}
 
 			if (!!uses && uses >= bucket.maxUses) {
-        writeError(res, 429, `Max requests for bucket '${bucketName}' exceeded`);
+        writeError(res, 429, `Max requests for bucket '${bucketName}' exceeded`, calmDown);
 				resolve(false);
 				return;
 			}

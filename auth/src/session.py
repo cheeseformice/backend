@@ -75,7 +75,8 @@ async def new_session(request):
 			# User hasn't logged in or didn't set up a password
 			return await request.reject(
 				"InvalidCredentials",
-				"Invalid username or password."
+				"Invalid username or password.",
+				translation_key="wrongCredentials"
 			)
 
 		# Hashing may take some time, so give a response before timeout
@@ -89,7 +90,8 @@ async def new_session(request):
 			await request.send({
 				"success": False,
 				"err": "InvalidCredentials",
-				"err_msg": "Invalid username or password."
+				"err_msg": "Invalid username or password.",
+				"translationKey": "wrongCredentials",
 			})
 			await request.end()
 			return
@@ -138,7 +140,8 @@ async def new_session(request):
 			if row is None:
 				return await request.reject(
 					"InvalidCredentials",
-					"Account has been created less than 24 hours ago."
+					"Account has been created less than 24 hours ago.",
+					translation_key="accountNotInDb"
 				)
 
 			await request.open_stream()
@@ -199,7 +202,8 @@ async def set_password(request):
 			await request.send({
 				"success": False,
 				"err": "InvalidCredentials",
-				"err_msg": "Invalid password."
+				"err_msg": "Wrong password.",
+				"translation_key": "wrongPassword",
 			})
 			await request.end()
 			return

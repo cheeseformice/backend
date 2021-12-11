@@ -169,6 +169,7 @@ schemas = {
 		"privacy": Require("Privacy"),
 		"disqualified": Field("disqualified", False),
 		"can_qualify": Field("can_qualify", False),
+		"has_password": Field("has_password", False),
 	},
 
 	"CFMDisqualificationInformation": {

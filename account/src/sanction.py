@@ -101,7 +101,11 @@ async def cancel_sanction(request):
 		)
 		row = await result.first()
 		if row is None:
-			await request.reject("NotFound", "The player is not sanctioned.", "notSanctioned")
+			await request.reject(
+				"NotFound",
+				"The player is not sanctioned.",
+				"notSanctioned"
+			)
 			return
 
 		await conn.execute(

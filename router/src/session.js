@@ -135,16 +135,26 @@ router.post("/@me/password", async (req, res) => {
 	const auth = assertAuthorization(req, res);
 	if (!auth) { return; }
 
-	const { password } = req.body;
-	if (!password) {
-		writeError(res, 400, "Missing password");
+	const { oldPassword, newPassword } = req.body;
+	if (!oldPassword || !newPassword) {
+		writeError(res, 400, "Missing passwords");
 		return;
 	}
 
 	service.request(
-		"auth", "set-password", { auth, password },
+		"auth", "set-password", { auth, old_password: oldPassword, new_password: newPassword },
 		(result) => {
-			if (result.type == "end") {
+			if (result.type == "content") {
+				// The service takes some time to fulfill a response
+				// (due to hashing); so it opens a stream first
+				if (!result.content.success) {
+					// Something went wrong
+					if (result.content.err == "InvalidCredentials") {
+						writeError(res, 401, result.content.err_msg);
+					}
+					return;
+				}
+
 				// Everything is ok
 				res.status(204).send();
 			} else if (!!result.err) {

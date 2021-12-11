@@ -177,9 +177,36 @@ async def new_session(request):
 async def set_password(request):
 	await request.open_stream()
 
-	password = await service.loop.run_in_executor(
+	async with service.db.acquire() as conn:
+		result = await conn.execute(
+			select(auth.c.password)
+			.select_from(auth)
+			.where(auth.c.id == request.auth["user"])
+		)
+		row = await result.first()
+
+	if row is None:
+		raise Exception("authenticated user not in db?")
+
+	if row.password != "":
+		# User has a password
+		is_correct = await service.loop.run_in_executor(
+			service.process_pool,
+			verify_password, request.old_password, row.password
+		)
+
+		if not is_correct:
+			await request.send({
+				"success": False,
+				"err": "InvalidCredentials",
+				"err_msg": "Invalid password."
+			})
+			await request.end()
+			return
+
+	new_password = await service.loop.run_in_executor(
 		service.process_pool,
-		hash_password, request.password
+		hash_password, request.new_password
 	)
 
 	async with service.db.acquire() as conn:
@@ -187,7 +214,7 @@ async def set_password(request):
 			auth.update()
 			.where(auth.c.id == request.auth["user"])
 			.values(
-				password=password,
+				password=new_password,
 				refresh=auth.c.refresh + 1
 			)
 		)

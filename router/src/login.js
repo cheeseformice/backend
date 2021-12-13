@@ -16,14 +16,12 @@ const { checkRateLimit } = require("./ratelimits");
 const router = express.Router();
 
 router.post("/session", async (req, res) => {
-	const result = await checkRateLimit(req, res, "session");
-	if (!result) { return; }
-
 	// Someone wants to create a new session
 	const success = assertUnauthorized(req, res);
 	if (!success) { return; }
 
 	let request = {};
+	let bucket = "session";
 	if (typeof req.body.refresh == "string") {
 		// They want to use a refresh token
 		let refresh;
@@ -52,6 +50,7 @@ router.post("/session", async (req, res) => {
 		typeof req.body.user == "string" &&
 		typeof req.body.password == "string"
 	) {
+		bucket = "login";
 		// They want to use user and password
 		let remind = false;
 		if (typeof req.body.remind == "boolean") {
@@ -72,6 +71,9 @@ router.post("/session", async (req, res) => {
 		// tf are they trying to use lol
 		return writeError(res, 400);
 	}
+
+	const result = await checkRateLimit(req, res, bucket);
+	if (!result) { return; }
 
 	// Send the data to the auth service
 	service.request("auth", "new-session", request, (result) => {

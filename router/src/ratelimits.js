@@ -3,8 +3,14 @@ const { writeError, service, checkAuthorization } = require("./common");
 const buckets = {
   session: {
     paramType: "ip",
-    maxUses: 2,
+    maxUses: 5,
     expires: 5 * 60,
+  },
+
+  login: {
+    paramType: "ip",
+    maxUses: 5,
+    expires: 1 * 60,
   },
 
   password: {
@@ -45,7 +51,7 @@ const checkRateLimit = (req, res, bucketName, param) => {
 			}
 
 			if (!!uses && uses >= bucket.maxUses) {
-        writeError(res, 429, `Max requests for bucket '${bucketName}' exceeded`, calmDown);
+        writeError(res, 429, `Max requests for bucket '${bucketName}' exceeded`, "calmDown");
 				resolve(false);
 				return;
 			}

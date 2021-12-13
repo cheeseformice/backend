@@ -35,7 +35,8 @@ const checkRateLimit = (req, res, bucketName, param) => {
       param = user.user; // user id
     }
 
-		service.redis.get(`rate:${bucket.paramType}:${bucketName}:${param}`, (err, uses) => {
+    const key = `rate:${bucket.paramType}:${bucketName}:${param}`;
+		service.redis.get(key, (err, uses) => {
 			if (!!err) {
         console.error(err);
         writeError(res, 500, null, "internal");
@@ -50,10 +51,10 @@ const checkRateLimit = (req, res, bucketName, param) => {
 			}
 
 			if (!uses) {
-				service.redis.set(bucketName, 1);
-				service.redis.expire(bucketName, bucket.expires);
+				service.redis.set(key, 1);
+				service.redis.expire(key, bucket.expires);
 			} else {
-				service.redis.incr(bucketName);
+				service.redis.incr(key);
 			}
 
 			resolve(true);

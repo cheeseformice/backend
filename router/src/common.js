@@ -193,6 +193,48 @@ function normalizeName(name) {
 	return name.includes("#") ? name : `${name}#0000`;
 }
 
+function checkPeriod(req, res) {
+	const unsuccessful = {
+		success: false,
+		start: null,
+		end: null,
+	};
+
+	const { start, end } = req.query;
+	const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+	const dates = [
+		start,
+		end,
+	];
+	for (var i = 0; i < dates.length; i++) {
+		let date = dates[i];
+
+		if (!!date) {
+			if (!date.match(dateRegex) || isNaN(Date.parse(date))) {
+				writeError(
+					res, 400,
+					`Invalid date: ${date} (expected YYYY-MM-DD)`
+				);
+				return unsuccessful;
+			}
+		}
+	}
+
+	if (!!start && !!end && Date.parse(start) >= Date.parse(end)) {
+		writeError(
+			res, 400,
+			"End date must not be a date before the start date."
+		);
+		return unsuccessful;
+	}
+
+	return {
+		success: true,
+		start: start,
+		end: end,
+	};
+}
+
 module.exports = {
 	service: service,
 
@@ -225,4 +267,5 @@ module.exports = {
 	assertAuthorization: assertAuthorization,
 	assertUnauthorized: assertUnauthorized,
 	normalizeName: normalizeName,
+	checkPeriod: checkPeriod,
 };

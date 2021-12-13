@@ -97,7 +97,7 @@ def null_stats(is_tribe):
 	return profile_stats
 
 
-async def fetch_period(conn, request, table, row):
+async def fetch_period(conn, request, table, row, force_public=False):
 	period = None
 	if row is not None and (request.period_start or request.period_end):
 		period_start = None
@@ -157,7 +157,7 @@ async def fetch_period(conn, request, table, row):
 			("racing", "RacingStats", "racing_"),
 			("defilante", "DefilanteStats", "defilante_"),
 		):
-			if is_tribe:
+			if is_tribe or force_public:
 				is_public = True
 			else:
 				is_public = row[name] is None or row[name]
@@ -173,6 +173,20 @@ async def fetch_period(conn, request, table, row):
 			})
 
 	return period
+
+
+@service.on_request("progress")
+async def account_progress(request):
+	async with service.db.acquire() as conn:
+		result = await conn.execute(
+			select(player)
+			.select_from(player)
+			.where(player.c.id == request.auth["user"])
+		)
+		row = await result.first()
+		period = await fetch_period(conn, request, player_changelog, row, True)
+
+	await request.send(period)
 
 
 @service.on_request("player")

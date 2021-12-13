@@ -9,6 +9,7 @@ const {
 	handleServiceError,
 	handleBasicServiceResult,
 	cfmRoles,
+	checkPeriod,
 } = require("./common");
 const { checkRateLimit } = require("./ratelimits");
 
@@ -182,6 +183,29 @@ router.get("/@me", (req, res) => {
 		handleBasicServiceResult(res)
 	);
 });
+
+router.get("/@me/progress", (req, res) => {
+	// Someone wants to know their progress
+	const auth = assertAuthorization(req, res);
+	if (!auth) { return; }
+
+	const request = { auth: auth };
+
+	const { recent } = req.query;
+	request.use_recent = recent === "true";
+
+	let { success, start, end } = checkPeriod(req, res);
+	if (!success) { return; }
+	if (!!start) { request.period_start = start; }
+	if (!!end) { request.period_end = end; }
+
+	// Send the request to the account service,
+	// and just send whatever it replies to the user
+	service.request(
+		"profile", "progress", request,
+		handleBasicServiceResult(res)
+	);
+})
 
 router.patch("/@me/privacy", (req, res) => {
 	// Someone wants to change their privacy settings

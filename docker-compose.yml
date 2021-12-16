@@ -74,6 +74,8 @@ services:
       - INFRA_RECONNECT
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
+      - SANCTION_WH_ID
+      - SANCTION_WH_TOKEN
       - WORKERS=1
 
   auth:

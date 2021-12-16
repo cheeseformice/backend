@@ -1,10 +1,74 @@
 from common import service
+from datetime import datetime
 
 from shared.roles import to_cfm_roles
 from shared.models import disqualified, sanctions, player, roles
 from shared.schemas import as_dict
+from sqlalchemy import or_
 from sqlalchemy.sql import select, delete
 from sqlalchemy.dialects.mysql import insert
+
+
+def name_link(name: str) -> str:
+	if name is None:
+		return "Could not fetch player name"
+
+	link_name = name.replace("#", "-")
+	return f"[{name}](https://cheese.formice.com/p/{link_name})"
+
+
+def prepare_sanction_embed(
+	reason: str,
+	subject_id: int, subject_name: str,
+	mod_id: int, mod_name: str,
+):
+	return {
+		"embed": {
+			"title": "New sanction",
+			"color": 0xD0021B,
+			"timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+			"fields": [
+				{
+					"name": "Subject",
+					"value": f"{name_link(subject_name)}: `{subject_id}`",
+					"inline": True,
+				},
+				{
+					"name": "Responsible moderator",
+					"value": f"{name_link(mod_name)}: `{mod_id}`",
+					"inline": True,
+				},
+				{
+					"name": "Sanction reason",
+					"value": f"{reason}"
+				},
+			]
+		}
+	}
+
+def prepare_cancel_embed(
+	subject_id: int, subject_name: str,
+	mod_id: int, mod_name: str,
+):
+	return {
+		"embed": {
+			"title": "Sanction cancelled",
+			"color": 0xF5A623,
+			"timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+			"fields": [
+				{
+					"name": "Subject",
+					"value": f"{name_link(subject_name)}: `{subject_id}`",
+					"inline": True,
+				},
+				{
+					"name": "Responsible moderator",
+					"value": f"{name_link(mod_name)}: `{mod_id}`",
+					"inline": True,
+				},
+			]
+		}
+	}
 
 
 @service.on_request("get-sanction")
@@ -86,6 +150,27 @@ async def sanction(request):
 		)
 		await request.end()
 
+		result = await conn.execute(
+			select(player.c.id, player.c.name)
+			.where(or_(
+				player.c.id == request.subject,
+				player.c.id == request.auth["user"]
+			))
+		)
+		rows = await result.fetchall()
+		subject_name, mod_name = None, None
+		for row in rows:
+			if row.id == request.subject:
+				subject_name = row.name
+			else:
+				mod_name = row.name
+
+		await service.wh.post(None, [prepare_sanction_embed(
+			request.reason,
+			request.subject, subject_name,
+			request.auth["user"], mod_name,
+		)])
+
 
 @service.on_request("cancel-sanction")
 async def cancel_sanction(request):
@@ -113,3 +198,23 @@ async def cancel_sanction(request):
 			.where(sanctions.c.player == request.subject)
 		)
 		await request.end()
+
+		result = await conn.execute(
+			select(player.c.id, player.c.name)
+			.where(or_(
+				player.c.id == request.subject,
+				player.c.id == request.auth["user"]
+			))
+		)
+		rows = await result.fetchall()
+		subject_name, mod_name = None, None
+		for row in rows:
+			if row.id == request.subject:
+				subject_name = row.name
+			else:
+				mod_name = row.name
+
+		await service.wh.post(None, [prepare_cancel_embed(
+			request.subject, subject_name,
+			request.auth["user"], mod_name,
+		)])

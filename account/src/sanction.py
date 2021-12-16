@@ -46,6 +46,7 @@ def prepare_sanction_embed(
 		}
 	}
 
+
 def prepare_cancel_embed(
 	subject_id: int, subject_name: str,
 	mod_id: int, mod_name: str,

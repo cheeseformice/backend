@@ -48,6 +48,8 @@ function handleServiceError(res, result) {
 		case "rejected":
 			if (result.type == "BadRequest") {
 				writeError(res, 400, result.args[0]);
+			}	else if (result.type == "MissingPrivileges") {
+				writeError(res, 401, result.args[0]);
 			}	else if (result.type == "NotFound") {
 				writeError(res, 404, result.args[0]);
 			} else if (result.type == "NotImplemented") {

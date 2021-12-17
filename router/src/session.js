@@ -136,14 +136,14 @@ router.post("/@me/password", async (req, res) => {
 	const auth = assertAuthorization(req, res);
 	if (!auth) { return; }
 
-	const { oldPassword, newPassword } = req.body;
-	if (!oldPassword || !newPassword) {
+	const { old_password, new_password } = req.body;
+	if (!old_password || !new_password) {
 		writeError(res, 400, "Missing passwords");
 		return;
 	}
 
 	service.request(
-		"auth", "set-password", { auth, old_password: oldPassword, new_password: newPassword },
+		"auth", "set-password", { auth, old_password: old_password, new_password: new_password },
 		(result) => {
 			if (result.type == "content") {
 				// The service takes some time to fulfill a response

@@ -436,6 +436,7 @@ const char* getQualificationQuery() {
     if (sscanf(line, "%s = %d", field, &min) == EOF) { continue; }
 
     snprintf(minStr, 10, "%d", min);
+    if (min == 0) { continue; }
 
     strcat(query, " AND `p`.`");
     strcat(query, field);

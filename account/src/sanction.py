@@ -111,7 +111,7 @@ async def get_sanction(request):
 		disq_info = as_dict("CFMDisqualificationInformation", cfm_sanction)
 	response = {
 		"tfm": disq is not None and disq.tfm > 0,
-		"cfm": disq is not None and disq.cfm > 0,
+		"cfm": cfm_sanction is not None,
 		"disq_info": disq_info,
 	}
 	await request.send(response)

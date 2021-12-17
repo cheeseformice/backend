@@ -223,4 +223,5 @@ async def set_password(request):
 			)
 		)
 
+	await request.send({"success": True})
 	await request.end()

@@ -189,15 +189,26 @@ router.get("/@me/progress", (req, res) => {
 	const auth = assertAuthorization(req, res);
 	if (!auth) { return; }
 
-	const request = { auth: auth };
+	const request = {
+		auth: auth,
+		period_start: null,
+		period_end: null,
+	};
 
 	const { recent } = req.query;
 	request.use_recent = recent === "true";
 
 	let { success, start, end } = checkPeriod(req, res);
 	if (!success) { return; }
-	if (!!start) { request.period_start = start; }
-	if (!!end) { request.period_end = end; }
+	if (!start && !end) {
+		return writeError(
+			res, 400,
+			"At least one period boundary (start or end) is required."
+		);
+	}
+
+	request.period_start = start;
+	request.period_end = end;
 
 	// Send the request to the account service,
 	// and just send whatever it replies to the user

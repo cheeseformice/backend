@@ -468,7 +468,11 @@ async def get_position(request):
 
 		if for_player:
 			tbl = tbl.outerjoin(disqualified, disqualified.c.id == player.c.id)
-			condition = and_(condition, disqualified.c.id.is_(None))
+			condition = and_(
+				condition,
+				disqualified.c.id.is_(None),
+				qualification_query
+			)
 
 		result = await conn.execute(
 			select(func.count().label("count"))

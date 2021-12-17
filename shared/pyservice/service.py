@@ -281,6 +281,7 @@ class Service:
 
 				if not self.running:
 					# Service doesn't accept requests right now.
+					print("Request when not running")
 					self.loop.create_task(request.end())
 					return
 
@@ -291,6 +292,7 @@ class Service:
 
 				else:
 					# No handler
+					print("No handler for request", msg["request_type"])
 					coro = request.end()
 
 				self.loop.create_task(coro)

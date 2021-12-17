@@ -23,8 +23,8 @@ async def on_boot(new):
 	global service
 	service = new
 
-	service.wh = Webhook()
-	await service.wh.boot(int(env.sanction_wh_id), env.sanction_wh_token)
+	service.wh = Webhook(int(env.sanction_wh_id), env.sanction_wh_token)
+	await service.wh.boot()
 
 	service.db = await create_engine(
 		host=env.cfm_ip, port=3306,

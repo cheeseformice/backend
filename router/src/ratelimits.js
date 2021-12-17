@@ -31,7 +31,6 @@ const checkRateLimit = (req, res, bucketName, param) => {
 
     if (bucket.paramType === "ip") {
       param = req.headers["x-real-ip"];
-      console.log(param)
     } else if (bucket.paramType === "user") {
       const user = checkAuthorization(req, res);
       if (!user) {

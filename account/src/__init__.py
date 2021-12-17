@@ -4,6 +4,7 @@ from common import service
 
 # Initialize modules
 import me # noqa
+import sanction # noqa
 
 
 if __name__ == "__main__":

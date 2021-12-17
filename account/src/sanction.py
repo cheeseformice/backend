@@ -95,8 +95,8 @@ async def get_sanction(request):
 			)
 			.select_from(
 				sanctions
-				.join(player, player.c.id == sanctions.c.player)
-				.outerjoin(roles, roles.c.id == sanctions.c.player)
+				.join(player, player.c.id == sanctions.c.mod)
+				.outerjoin(roles, roles.c.id == sanctions.c.mod)
 			)
 			.where(sanctions.c.player == request.subject)
 		)

@@ -465,6 +465,11 @@ async def get_position(request):
 			condition = and_(field <= boundary, field >= value)
 		else:
 			condition = and_(field < boundary, field > value)
+
+		if for_player:
+			tbl = tbl.outerjoin(disqualified, disqualified.c.id == player.c.id)
+			condition = and_(condition, disqualified.c.id.is_(None))
+
 		result = await conn.execute(
 			select(func.count().label("count"))
 			.select_from(tbl)

@@ -323,7 +323,7 @@ bool generateIndices(MYSQL *con, int slot, const char* qualificationQuery) {
     const char* name = validStats[i];
 
     // prepare mysql query
-    char* fmt = (char*) malloc(1024);
+    char* fmt = (char*) malloc(sizeof(char) * 1024);
     if (slot == 0) {
       char* preFmt = "SELECT `p`.`%%s` "
                      "FROM `%%s` as `p` "
@@ -336,13 +336,13 @@ bool generateIndices(MYSQL *con, int slot, const char* qualificationQuery) {
     } else if (slot == 1) {
       fmt = "SELECT `%s` FROM `%s` ORDER BY `%s` DESC";
     } else {
-      printfd("unknown table slot %d", slot);
+      printfd("unknown table slot %d\n", slot);
       goto error;
     }
     int length = strlen(fmt) + 1 + strlen(tables[slot]) + strlen(name) * 2;
     char query[length];
     snprintf(query, length, fmt, name, tables[slot], name);
-    free(fmt);
+    printfd("using query %s\n", query);
 
     MYSQL_STMT *stmt = mysql_stmt_init(con);
     if (mysql_stmt_prepare(stmt, query, strlen(query)) != 0) {

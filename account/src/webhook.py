@@ -12,7 +12,7 @@ class Webhook:
 		self.session = await self.session_manager.__aenter__()
 
 	async def stop(self):
-		await self.session_manager.__aexit__()
+		await self.session_manager.__aexit__(None, None, None)
 
 	async def post(self, content=None, embeds=None):
 		data = {}

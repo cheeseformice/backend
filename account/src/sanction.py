@@ -23,27 +23,25 @@ def prepare_sanction_embed(
 	mod_id: int, mod_name: str,
 ):
 	return {
-		"embed": {
-			"title": "New sanction",
-			"color": 0xD0021B,
-			"timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-			"fields": [
-				{
-					"name": "Subject",
-					"value": f"{name_link(subject_name)}: `{subject_id}`",
-					"inline": True,
-				},
-				{
-					"name": "Responsible moderator",
-					"value": f"{name_link(mod_name)}: `{mod_id}`",
-					"inline": True,
-				},
-				{
-					"name": "Sanction reason",
-					"value": f"{reason}"
-				},
-			]
-		}
+		"title": "New sanction",
+		"color": 0xD0021B,
+		"timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+		"fields": [
+			{
+				"name": "Subject",
+				"value": f"{name_link(subject_name)}: `{subject_id}`",
+				"inline": True,
+			},
+			{
+				"name": "Responsible moderator",
+				"value": f"{name_link(mod_name)}: `{mod_id}`",
+				"inline": True,
+			},
+			{
+				"name": "Sanction reason",
+				"value": f"{reason}"
+			},
+		],
 	}
 
 
@@ -52,23 +50,21 @@ def prepare_cancel_embed(
 	mod_id: int, mod_name: str,
 ):
 	return {
-		"embed": {
-			"title": "Sanction cancelled",
-			"color": 0xF5A623,
-			"timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-			"fields": [
-				{
-					"name": "Subject",
-					"value": f"{name_link(subject_name)}: `{subject_id}`",
-					"inline": True,
-				},
-				{
-					"name": "Responsible moderator",
-					"value": f"{name_link(mod_name)}: `{mod_id}`",
-					"inline": True,
-				},
-			]
-		}
+		"title": "Sanction cancelled",
+		"color": 0xF5A623,
+		"timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+		"fields": [
+			{
+				"name": "Subject",
+				"value": f"{name_link(subject_name)}: `{subject_id}`",
+				"inline": True,
+			},
+			{
+				"name": "Responsible moderator",
+				"value": f"{name_link(mod_name)}: `{mod_id}`",
+				"inline": True,
+			},
+		],
 	}
 
 

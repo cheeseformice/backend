@@ -82,6 +82,8 @@ class RunnerPool:
 				task.print_stack(file=sys.stdout)
 
 		else:
+			if table.name == "player":
+				await self.update_disqualifications()
 			await self.post_download(table)
 
 			logging.info("[{}] done updating".format(table.name))
@@ -606,8 +608,6 @@ class RunnerPool:
 					"" if table.is_empty else "_new"
 				)
 			)
-
-			await self.update_disqualifications()
 
 		if table.is_empty:
 			return

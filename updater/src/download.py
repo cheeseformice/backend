@@ -83,7 +83,11 @@ class RunnerPool:
 
 		else:
 			if table.name == "player":
-				await self.update_disqualifications()
+				try:
+					await self.update_disqualifications()
+				except Exception:
+					import traceback
+					traceback.print_exc()
 			await self.post_download(table)
 
 			logging.info("[{}] done updating".format(table.name))

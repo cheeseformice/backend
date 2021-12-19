@@ -20,6 +20,6 @@ qualification_query = and_(*qualification_query)
 
 def can_qualify(row) -> bool:
 	for key, minimum in qualification.items():
-		if getattr(row, key, 0) < int(minimum):
+		if (getattr(row, key) or 0) < int(minimum):
 			return False
 	return True

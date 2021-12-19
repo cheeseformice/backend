@@ -78,7 +78,7 @@ def calculate_difference(is_tribe, end, start):
 
 	profile_stats = {}
 	for stat in check:
-		profile_stats[stat] = (end[stat] or 0) - (start[stat] or 0)
+		profile_stats[stat] = (getattr(end, stat) or 0) - (getattr(start, stat) or 0)
 	return profile_stats
 
 

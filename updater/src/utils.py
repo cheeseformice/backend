@@ -36,7 +36,7 @@ def with_cursors(*from_pools):
 				# No matter what, close cursors and release connections
 				for cursor in cursors:
 					await cursor.close()
-				for conn in conns:
+				for conn, pool in zip(conns, pools):
 					pool.release(conn)
 
 		if not from_pools:

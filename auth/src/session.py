@@ -5,7 +5,7 @@ from common import service, env
 from argon2 import PasswordHasher, exceptions
 
 from shared.roles import to_cfm_roles, to_tfm_roles
-from shared.models import roles, auth, player
+from shared.models import roles, auth, player, bots
 from sqlalchemy.sql import select
 
 
@@ -27,28 +27,54 @@ def hash_password(password):
 async def new_session(request):
 	if request.uses == "refresh":
 		token = request.refresh
+		if "bot" not in token:
+			token["bot"] = False
 
 		async with service.db.acquire() as conn:
-			result = await conn.execute(
-				select(
-					auth.c.id,
-					auth.c.refresh,
+			if not token["bot"]:
+				result = await conn.execute(
+					select(
+						auth.c.id,
+						auth.c.refresh,
 
-					roles.c.cfm.label("cfm_roles"),
-					roles.c.tfm.label("tfm_roles"),
+						roles.c.cfm.label("cfm_roles"),
+						roles.c.tfm.label("tfm_roles"),
+					)
+					.select_from(
+						auth
+						.outerjoin(roles, roles.c.id == auth.c.id)
+					)
+					.where(auth.c.id == token["user"])
 				)
-				.select_from(
-					auth
-					.outerjoin(roles, roles.c.id == auth.c.id)
+			else:
+				result = await conn.execute(
+					select(
+						bots.c.id,
+						bots.c.refresh,
+
+						bots.c.owner.label("owner_id"),
+						roles.c.cfm.label("cfm_roles"),
+						roles.c.tfm.label("tfm_roles"),
+					)
+					.select_from(
+						bots
+						.outerjoin(roles, roles.c.id == bots.c.owner)
+					)
+					.where(bots.c.id == token["client_id"])
 				)
-				.where(auth.c.id == token["user"])
-			)
 			row = await result.first()
 
 		if row is None or row.refresh != token["refresh"]:
 			return await request.reject("ExpiredToken", "Token has expired")
 
 		response = {}
+		if token["bot"]:
+			response["session"] = {
+				"bot": row.id,
+				"owner": row.owner_id,
+				"cfm_roles": to_cfm_roles(row.cfm_roles or 0),
+				"tfm_roles": to_tfm_roles(row.tfm_roles or 0),
+			}
 		await request.open_stream()
 
 	elif request.uses == "credentials":
@@ -166,12 +192,58 @@ async def new_session(request):
 			"has_password": refresh > 0
 		}
 
+	elif request.uses == "bot-token":
+		async with service.db.acquire() as conn:
+			result = await conn.execute(
+				select(
+					bots.c.id,
+					bots.c.token,
+					bots.c.refresh,
+
+					bots.c.owner.label("owner_id"),
+					roles.c.cfm.label("cfm_roles"),
+					roles.c.tfm.label("tfm_roles"),
+				)
+				.select_from(
+					bots
+					.outerjoin(roles, roles.c.id == bots.c.owner)
+				)
+				.where(bots.c.id == request.client_id)
+			)
+			row = await result.first()
+
+		if row is None or row.token != request.token:
+			# bot doesn't exist or token doesn't match
+			return await request.reject(
+				"InvalidCredentials",
+				"Invalid client id or token.",
+				translation_key="wrongCredentials"
+			)
+
+		response = {
+			"refresh": {
+				"bot": True,
+				"client_id": row.id,
+				"refresh": row.refresh,
+				"duration": request.duration,
+			},
+			"session": {
+				"bot": row.id,
+				"owner": row.owner_id,
+				"cfm_roles": to_cfm_roles(row.cfm_roles or 0),
+				"tfm_roles": to_tfm_roles(row.tfm_roles or 0),
+			},
+		}
+
+		await request.open_stream()
+
 	response["success"] = True
-	response["session"] = {
-		"user": row.id,
-		"cfm_roles": to_cfm_roles(row.cfm_roles or 0),
-		"tfm_roles": to_tfm_roles(row.tfm_roles or 0),
-	}
+	if "session" not in response:
+		response["session"] = {
+			"user": row.id,
+			"cfm_roles": to_cfm_roles(row.cfm_roles or 0),
+			"tfm_roles": to_tfm_roles(row.tfm_roles or 0),
+		}
 	await request.send(response)
 	await request.end()
 

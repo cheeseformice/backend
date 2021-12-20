@@ -188,6 +188,17 @@ disqualified = sa.Table(
 )
 
 
+# Bots
+bots = sa.Table(
+	"bots", metadata,
+	sa.Column("id", sa.BigInteger, nullable=False, primary_key=True),
+	sa.Column("owner", sa.BigInteger, nullable=False, index=True),
+	sa.Column("name", sa.String(100), nullable=False),
+	sa.Column("token", sa.String(100), nullable=False),
+	sa.Column("refresh", sa.Integer, nullable=False, default=0),
+)
+
+
 # Periodic leaderboards
 def temp_rank_table(name):
 	return sa.Table(

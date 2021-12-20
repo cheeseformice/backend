@@ -1,11 +1,13 @@
 "use strict";
 
+const ms = require("ms");
 const jwt = require("jsonwebtoken");
 const express = require("express");
 const {
 	service,
 	SESSION_KEY,
 	REFRESH_KEY,
+	BOT_KEY,
 	assertUnauthorized,
 	writeError,
 	handleServiceError,
@@ -67,6 +69,31 @@ router.post("/session", async (req, res) => {
 		request.uses = "ticket";
 		request.ticket = req.body.ticket;
 
+	} else if (
+		typeof req.body.client_id == "number" &&
+		typeof req.body.token == "string"
+	) {
+		request.uses = "bot-token";
+		request.client_id = req.body.client_id;
+		request.token = req.body.token;
+
+		let duration;
+		if (typeof req.body.duration == "number") {
+			duration = req.body.duration * 1000;
+		} else if (typeof req.body.duration == "string") {
+			duration = ms(req.body.duration);
+		} else {
+			duration = ms("4h");
+		}
+
+		if (duration < ms("1m")) {
+			duration = ms("1m");
+		} else if (duration > ms("1d")) {
+			duration = ms("1d");
+		}
+
+		request.duration = ms(duration);
+
 	} else {
 		// tf are they trying to use lol
 		return writeError(res, 400);
@@ -102,6 +129,7 @@ router.post("/session", async (req, res) => {
 				response.has_password = result.content.has_password;
 			}
 
+			const bot = result.content.bot;
 			let refresh = result.content.refresh;
 			let session = result.content.session;
 			if (!!refresh) {
@@ -109,12 +137,16 @@ router.post("/session", async (req, res) => {
 				let duration = refresh.duration;
 				delete refresh.duration;
 
+				if (bot) {
+					response.duration = Math.floor(ms(duration) / 1000);
+				}
+
 				response.refresh = jwt.sign(refresh, REFRESH_KEY, {
 					expiresIn: duration
 				});
 			}
 			// Sign a new session
-			response.session = jwt.sign(session, SESSION_KEY, {
+			response.session = jwt.sign(session, bot ? BOT_KEY : SESSION_KEY, {
 				expiresIn: "30m"
 			});
 

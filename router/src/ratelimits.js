@@ -17,7 +17,14 @@ const buckets = {
     paramType: "user",
     maxUses: 3,
     expires: 10 * 60,
-  }
+  },
+
+  dressroomPNG: {
+    paramType: "bot",
+    maxUses: 1,
+    expires: 3,
+    botOwner: false,
+  },
 }
 
 const checkRateLimit = (req, res, bucketName, param) => {
@@ -38,6 +45,13 @@ const checkRateLimit = (req, res, bucketName, param) => {
         return;
       }
       param = user.user; // user id
+    } else if (bucket.paramType === "bot") {
+      const bot = checkAuthorization(req, res, true);
+      if (!bot) {
+        resolve(false);
+        return;
+      }
+      param = bucket.botOwner ? bot.owner_id : bot.id;
     }
 
     const key = `rate:${bucket.paramType}:${bucketName}:${param}`;

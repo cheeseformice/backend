@@ -53,3 +53,13 @@ CREATE TABLE `disqualified`(
   PRIMARY KEY (`id`),
   KEY `cfm` (`cfm`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `bots`(
+  `id` int(11) NOT NULL,
+  `owner` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `token` varchar(100) NOT NULL,
+  `refresh` int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `owner` (`owner`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;

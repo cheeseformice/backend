@@ -9,9 +9,11 @@ const service = new Service(
 
 const SESSION_KEY = process.env.SESSION_KEY || "some long ass string lol";
 const REFRESH_KEY = process.env.REFRESH_KEY || "another long ass string lol";
+const BOT_KEY = process.env.BOT_KEY || "yet another long ass string lol";
 
 if (!process.env.SESSION_KEY ||
-	!process.env.REFRESH_KEY) {
+	!process.env.REFRESH_KEY ||
+	!process.env.BOT_KEY) {
 	console.warn(
 		"One or many of the required JWT aren't defined. Using default."
 	);
@@ -93,24 +95,23 @@ function getPagination(req) {
 	};
 }
 
-function checkAuthorization(req, res) {
+function checkAuthorization(req, res, bot) {
 	if (req.cfmAuthorization) {
 		return req.cfmAuthorization;
 	}
 
 	const { authorization } = req.headers;
-
 	if (!authorization) { return null; }
 
-	if (!authorization.toLowerCase().startsWith("bearer ")) {
-		writeError(res, 401, "Invalid token");
+	if (!authorization.toLowerCase().startsWith(bot ? "bot " : "bearer ")) {
+		writeError(res, 401, `Invalid ${bot ? 'bot' : 'user'} token`);
 		return;
 	}
 
-	const [bearer, token] = authorization.split(" ", 2);
+	const [type, token] = authorization.split(" ", 2);
 
 	try {
-		req.cfmAuthorization = jwt.verify(token, SESSION_KEY);
+		req.cfmAuthorization = jwt.verify(token, bot ? BOT_SESSION_KEY : SESSION_KEY);
 		return req.cfmAuthorization;
 	} catch(err) {
 		switch (err.name) {
@@ -128,7 +129,7 @@ function checkAuthorization(req, res) {
 }
 
 function assertAuthorization(req, res, roles) {
-	const auth = checkAuthorization(req, res);
+	const auth = checkAuthorization(req, res, roles.bot);
 
 	// error already written
 	if (auth === undefined) { return; }
@@ -261,6 +262,7 @@ module.exports = {
 
 	SESSION_KEY: SESSION_KEY,
 	REFRESH_KEY: REFRESH_KEY,
+	BOT_KEY: BOT_KEY,
 	writeError: writeError,
 	handleServiceError: handleServiceError,
 	handleBasicServiceResult: handleBasicServiceResult,

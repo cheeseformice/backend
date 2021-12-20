@@ -4,15 +4,47 @@ const express = require("express");
 const {
 	service,
 	writeError,
+	handleServiceError,
 	handleBasicServiceResult,
+	assertAuthorization,
 } = require("./common");
 
 const router = express.Router();
 
-router.get("/fur/:id", (req, res) => {
+function pngConverter(res) {
+	return (result) => {
+		if (result.type == "simple") {
+			res.type("image/png");
+			res.send(render(result.content, {
+				background: 'transparent',
+				fitTo: {
+					mode: 'width',
+					value: 150,
+				},
+				font: {
+					// It will be faster to disable loading system fonts.
+					loadSystemFonts: false,
+				},
+			}));
+
+		} else if (!!result.err) {
+			handleServiceError(res, result);
+		}
+	};
+}
+
+router.get("/fur/:id", async (req, res) => {
 	// Someone wants to get a fur SVG
 	var { id } = req.params;
-	var { color } = req.query;
+	var { color, png } = req.query;
+
+	if (png !== undefined) {
+		const auth = assertAuthorization(req, res, {bot: true});
+		if (!auth) { return; }
+
+		const result = await checkRateLimit(req, res, "dressroomPNG");
+		if (!result) { return; }
+	}
 
 	// Check the request
 	id = parseInt(id);
@@ -27,13 +59,21 @@ router.get("/fur/:id", (req, res) => {
 	service.request("dressroom", "fur", {
 		fur: id,
 		color: color
-	}, handleBasicServiceResult(res, "image/svg+xml"));
+	}, png !== undefined ? pngConverter(res) : handleBasicServiceResult(res, "image/svg+xml"));
 });
 
-router.get("/costume/:section/:id", (req, res) => {
+router.get("/costume/:section/:id", async (req, res) => {
 	// Someone wants to get a costume SVG
 	var { section, costume } = req.params;
-	var { colors } = req.query;
+	var { colors, png } = req.query;
+
+	if (png !== undefined) {
+		const auth = assertAuthorization(req, res, {bot: true});
+		if (!auth) { return; }
+
+		const result = await checkRateLimit(req, res, "dressroomPNG");
+		if (!result) { return; }
+	}
 
 	// Check the request
 	costume = parseInt(costume);
@@ -68,12 +108,21 @@ router.get("/costume/:section/:id", (req, res) => {
 		section: section,
 		costume: costume,
 		colors: colors
-	}, handleBasicServiceResult(res, "image/svg+xml"));
+	}, png !== undefined ? pngConverter(res) : handleBasicServiceResult(res, "image/svg+xml"));
 });
 
-router.get("/mouse/:look", (req, res) => {
+router.get("/mouse/:look", async (req, res) => {
 	// Someone wants to draw a full mouse
 	const { look } = req.params;
+	const { png } = req.query;
+
+	if (png !== undefined) {
+		const auth = assertAuthorization(req, res, {bot: true});
+		if (!auth) { return; }
+
+		const result = await checkRateLimit(req, res, "dressroomPNG");
+		if (!result) { return; }
+	}
 
 	// Parse the look and check the request
 	var [ fur, costumes, fur_color ] = look.split(";", 3);
@@ -154,7 +203,7 @@ router.get("/mouse/:look", (req, res) => {
 		fur: fur,
 		fur_color: fur_color,
 		costumes: costumes
-	}, handleBasicServiceResult(res, "image/svg+xml"));
+	}, png !== undefined ? pngConverter(res) : handleBasicServiceResult(res, "image/svg+xml"));
 });
 
 module.exports = router;

@@ -129,7 +129,7 @@ function checkAuthorization(req, res, bot) {
 }
 
 function assertAuthorization(req, res, roles) {
-	const auth = checkAuthorization(req, res, roles.bot);
+	const auth = checkAuthorization(req, res, roles && roles.bot);
 
 	// error already written
 	if (auth === undefined) { return; }

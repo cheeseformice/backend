@@ -55,7 +55,7 @@ CREATE TABLE `disqualified`(
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `bots`(
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `owner` int(11) NOT NULL,
   `name` varchar(100) NOT NULL,
   `token` varchar(100) NOT NULL,

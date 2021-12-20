@@ -1,5 +1,6 @@
 "use strict";
 
+const { render } = require("@resvg/resvg-js")
 const express = require("express");
 const {
 	service,
@@ -16,9 +17,9 @@ function pngConverter(res) {
 		if (result.type == "simple") {
 			res.type("image/png");
 			res.send(render(result.content, {
-				background: 'transparent',
+				background: "transparent",
 				fitTo: {
-					mode: 'width',
+					mode: "width",
 					value: 150,
 				},
 				font: {

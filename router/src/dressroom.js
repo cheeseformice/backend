@@ -9,6 +9,7 @@ const {
 	handleBasicServiceResult,
 	assertAuthorization,
 } = require("./common");
+const { checkRateLimit } = require("./ratelimits");
 
 const router = express.Router();
 

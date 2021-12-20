@@ -111,7 +111,7 @@ function checkAuthorization(req, res, bot) {
 	const [type, token] = authorization.split(" ", 2);
 
 	try {
-		req.cfmAuthorization = jwt.verify(token, bot ? BOT_SESSION_KEY : SESSION_KEY);
+		req.cfmAuthorization = jwt.verify(token, bot ? BOT_KEY : SESSION_KEY);
 		return req.cfmAuthorization;
 	} catch(err) {
 		switch (err.name) {

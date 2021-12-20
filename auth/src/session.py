@@ -69,6 +69,7 @@ async def new_session(request):
 
 		response = {}
 		if token["bot"]:
+			response["bot"] = True
 			response["session"] = {
 				"bot": row.id,
 				"owner": row.owner_id,
@@ -221,6 +222,7 @@ async def new_session(request):
 			)
 
 		response = {
+			"bot": True,
 			"refresh": {
 				"bot": True,
 				"client_id": row.id,

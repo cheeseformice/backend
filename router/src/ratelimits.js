@@ -51,7 +51,7 @@ const checkRateLimit = (req, res, bucketName, param) => {
         resolve(false);
         return;
       }
-      param = bucket.botOwner ? bot.owner_id : bot.id;
+      param = bucket.botOwner ? bot.owner : bot.bot;
     }
 
     const key = `rate:${bucket.paramType}:${bucketName}:${param}`;

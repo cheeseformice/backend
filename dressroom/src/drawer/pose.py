@@ -10,7 +10,20 @@ assets = os.path.abspath(
 		"assets", "poses"
 	)
 )
-layers = {
+head_only = {
+	"OreilleG": "OreilleG",  # Left ear
+	"Tete": "Tete",  # Head
+	"neck": "Tete",
+	"hair": "Tete",
+	"head": "Tete",
+	"mouth": "Tete",
+	"Oeil": "Oeil",  # Eye
+	"contact": "Oeil",
+	"eyes": "Oeil",
+	"OreilleD": "OreilleD",  # Right ear
+	"ears": "OreilleD",
+}
+full_body = {
 	# G = Gauche (left)
 	# D = Droite (right)
 
@@ -52,8 +65,9 @@ layers = {
 
 
 class Pose(AssetLoader):
-	def __init__(self, name):
+	def __init__(self, name, head):
 		self.name = name
+		self.head = head
 		self.matrices = {}
 
 		self.load_asset(os.path.join(assets, "{}.svg".format(name)))
@@ -71,6 +85,11 @@ class Pose(AssetLoader):
 			'<g transform="{}">'
 			.format(self.matrices["main"])
 		]
+
+		if self.head:
+			layers = head_only
+		else:
+			layers = full_body
 
 		for section, layer in layers.items():
 			self.post_costumes.append(

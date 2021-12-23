@@ -50,7 +50,7 @@ async def draw_fur(request):
 		)
 		return
 
-	pose = get_pose("statique")
+	pose = get_pose("statique", request.head_only)
 	await request.send("".join([
 		SVG_DEF,
 		fur.asset,
@@ -108,7 +108,7 @@ async def draw_mouse(request):
 
 		costumes.append((costume, colors))
 
-	pose = get_pose("statique")
+	pose = get_pose("statique", request.head_only)
 
 	await request.send("".join([
 		SVG_DEF,

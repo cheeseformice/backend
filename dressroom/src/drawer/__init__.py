@@ -59,14 +59,17 @@ def read_assets():
 		costumes_cache[section] = {}
 
 
-def get_pose(pose):
+def get_pose(pose, head: bool):
 	if pose not in pose_list:
 		return
 
 	if pose not in poses_cache:
-		poses_cache[pose] = Pose(pose)
+		poses_cache[pose] = {
+			True: Pose(pose, True),
+			False: Pose(pose, False),
+		}
 
-	return poses_cache[pose]
+	return poses_cache[pose][head]
 
 
 def get_fur(fur):

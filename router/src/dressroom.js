@@ -38,7 +38,7 @@ function pngConverter(res) {
 router.get("/fur/:id", async (req, res) => {
 	// Someone wants to get a fur SVG
 	var { id } = req.params;
-	var { color, png } = req.query;
+	var { color, png, head } = req.query;
 
 	if (png !== undefined) {
 		const auth = assertAuthorization(req, res, {bot: true});
@@ -60,7 +60,8 @@ router.get("/fur/:id", async (req, res) => {
 	// Send the request to the dressroom service and return whatever it says
 	service.request("dressroom", "fur", {
 		fur: id,
-		color: color
+		color: color,
+		head_only: head !== undefined,
 	}, png !== undefined ? pngConverter(res) : handleBasicServiceResult(res, "image/svg+xml"));
 });
 
@@ -116,7 +117,7 @@ router.get("/costume/:section/:id", async (req, res) => {
 router.get("/mouse/:look", async (req, res) => {
 	// Someone wants to draw a full mouse
 	const { look } = req.params;
-	const { png } = req.query;
+	const { png, head } = req.query;
 
 	if (png !== undefined) {
 		const auth = assertAuthorization(req, res, {bot: true});
@@ -204,7 +205,8 @@ router.get("/mouse/:look", async (req, res) => {
 	service.request("dressroom", "mouse", {
 		fur: fur,
 		fur_color: fur_color,
-		costumes: costumes
+		costumes: costumes,
+		head_only: head !== undefined,
 	}, png !== undefined ? pngConverter(res) : handleBasicServiceResult(res, "image/svg+xml"));
 });
 

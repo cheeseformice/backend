@@ -28,6 +28,7 @@ CREATE TABLE `player_privacy` (
   `survivor` boolean NOT NULL DEFAULT '1',
   `racing` boolean NOT NULL DEFAULT '1',
   `defilante` boolean NOT NULL DEFAULT '1',
+  `outfits` boolean NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 

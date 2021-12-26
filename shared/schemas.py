@@ -162,6 +162,7 @@ schemas = {
 		"survivor": Field("survivor", True),
 		"racing": Field("racing", True),
 		"defilante": Field("defilante", True),
+		"outfits": Field("outfits", True),
 	},
 
 	"AccountInformation": {

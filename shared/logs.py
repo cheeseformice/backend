@@ -100,6 +100,7 @@ PlayerLogs = LogContainer(
 		("defilante_points", "points"),
 		("score_defilante", "score"),
 	)),
+	outfits=LogInfo(public=True, fields=Fields(special=True)),
 )
 TribeLogs = LogContainer(
 	members=LogInfo(public=True, fields=Fields("members")),

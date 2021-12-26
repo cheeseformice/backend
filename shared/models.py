@@ -52,6 +52,7 @@ player_privacy = sa.Table(
 	sa.Column("survivor", sa.Boolean, nullable=False, default=True),
 	sa.Column("racing", sa.Boolean, nullable=False, default=True),
 	sa.Column("defilante", sa.Boolean, nullable=False, default=True),
+	sa.Column("outfits", sa.Boolean, nullable=False, default=True),
 )
 
 

@@ -265,6 +265,9 @@ async def profile_player(request):
 	if period is not None:
 		profile["period"] = period
 
+	if not row.outfits:
+		profile["shop"]["outfits"] = []
+
 	await request.send(profile)
 
 

@@ -5,8 +5,6 @@ import asyncio
 
 from utils import set_service, get_new_names, download_teams, tfm_roles
 
-from datetime import datetime, timedelta
-
 from shared.pyservice import Service
 from shared.models import roles
 

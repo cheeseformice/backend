@@ -11,11 +11,6 @@ from utils import env
 from shared.miniredis import Client
 
 
-class env:
-	host = os.getenv("INFRA_ADDR", "redis:6379")
-	reconnect = float(os.getenv("INFRA_RECONNECT", "10"))
-
-
 logging.basicConfig(
 	format='[%(asctime)s] [%(levelname)s] %(message)s',
 	level=logging.DEBUG

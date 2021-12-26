@@ -13,6 +13,9 @@ class env:
 	cfm_pass = os.getenv("DB_PASS", "test")
 	cfm_db = os.getenv("DB", "api_data")
 
+	host = os.getenv("INFRA_ADDR", "redis:6379")
+	reconnect = float(os.getenv("INFRA_RECONNECT", "10"))
+
 
 def with_cursors(*from_pools):
 	"""A decorator to acquire cursors from the given pools before

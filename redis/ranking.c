@@ -178,9 +178,10 @@ int cmd_GETPAGE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 
   if (ptr >= end)
     return RedisModule_ReplyWithError(ctx, "ERR page too far");
-  RedisModule_ReplyWithArray(ctx, 2);
+  RedisModule_ReplyWithArray(ctx, 3);
   RedisModule_ReplyWithLongLong(ctx, startRow / perIndex * perIndex);
-  return RedisModule_ReplyWithLongLong(ctx, *ptr);
+  RedisModule_ReplyWithLongLong(ctx, *ptr);
+  return RedisModule_ReplyWithLongLong(ctx, outdated[slot]);
 }
 
 MYSQL* connectToMySQL(void) {

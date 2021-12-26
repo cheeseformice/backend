@@ -193,6 +193,7 @@ async def lookup_player(request):
 			).where(where)
 		else:
 			if request.period == "overall":
+				without_seek = False
 				response = await service.redis.send(
 					"ranking.getpage",
 					"player",
@@ -200,12 +201,16 @@ async def lookup_player(request):
 					offset
 				)
 				if isinstance(response, list):
-					offset -= response[0]
-					query = query.where(and_(
-						field <= response[1],
-						disqualified.c.id.is_(None),
-						qualification_query,
-					))
+					if response[2] and offset < 100:
+						# outdated indices and offset is small
+						without_seek = True
+					else:
+						offset -= response[0]
+						query = query.where(and_(
+							field <= response[1],
+							disqualified.c.id.is_(None),
+							qualification_query,
+						))
 
 				else:
 					if offset > 10000:
@@ -214,7 +219,9 @@ async def lookup_player(request):
 							"The page is too far."
 						)
 						return
+					without_seek = True
 
+				if without_seek:
 					query = query.where(and_(
 						disqualified.c.id.is_(None),
 						qualification_query,

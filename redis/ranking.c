@@ -19,7 +19,9 @@
 #define perIndex 39
 
 volatile sig_atomic_t didShutdown = 0;
-pthread_t threadId;
+volatile sig_atomic_t didBoot = 0;
+pthread_t bootThreadId;
+pthread_t generatorThreadId;
 
 const char* tables[tablesLength] = {
   "player",
@@ -125,19 +127,6 @@ int reply_GETPOS(RedisModuleCtx *ctx, int outdated, int position, int value) {
   RedisModule_ReplyWithLongLong(ctx, outdated);
   RedisModule_ReplyWithLongLong(ctx, position);
   return RedisModule_ReplyWithLongLong(ctx, value);
-}
-
-int cmd_UPDATEDONE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-  const char* channelStr = "broadcast:update";
-  const char* messageStr = "done";
-
-  RedisModuleString *channel = RedisModule_CreateString(ctx, channelStr, strlen(channelStr));
-  RedisModuleString *message = RedisModule_CreateString(ctx, messageStr, strlen(messageStr));
-  RedisModule_PublishMessage(ctx, channel, message);
-  RedisModule_FreeString(ctx, channel);
-  RedisModule_FreeString(ctx, message);
-
-  return RedisModule_ReplyWithLongLong(ctx, 1);
 }
 
 /* RANKING.GETPOS name stat */
@@ -462,120 +451,94 @@ const char* getQualificationQuery() {
   return query;
 }
 
-void *indexGenerator(void *arg) {
-  bool isFirstRun = true;
-  bool errorOnLoad = false;
+int generateAllIndices(void) {
+  const char* qualificationQuery = getQualificationQuery();
+  MYSQL *con = connectToMySQL();
+
+  if (con == NULL)
+    return 1;
+
+  for (uint8_t slot = 0; slot < tablesLength; slot++)
+    if (generateIndices(con, slot, qualificationQuery))
+      available[slot] = 1;
+
+  mysql_close(con);
+  return 0;
+}
+
+void *generateAllIndicesThread(void *arg) {
+  generateAllIndices();
+  return NULL;
+}
+
+void *bootModule(void *arg) {
   const char* qualificationQuery = getQualificationQuery();
   printfd("using qualification query '%s'\n", qualificationQuery);
 
-  while (1) {
-    if (isFirstRun) {
-      isFirstRun = false;
-      printfd("index generator boot\n");
+  uint8_t slot;
+  int error = -1;
+  for (slot = 0; slot < tablesLength; slot++) {
+    // try to load indices from disk first
+    if (!allocateParentArrays(slot)) {
+      error = 0;
+    } else {
+      const char* path = getenvdef("INDEX_SAVE", "/data/rank_%s_index%d.bin");
+      printfd("loading indices from %s\n", path);
+      for (int i = 0; i < statsLength; i++) {
+        char buffer[256];
+        sprintf(buffer, path, tables[slot], i);
 
-      uint8_t slot;
-      int error = -1;
-      for (slot = 0; slot < tablesLength; slot++) {
-        // try to load indices from disk first
-        if (!allocateParentArrays(slot)) {
-          error = 0;
-        } else {
-          const char* path = getenvdef("INDEX_SAVE", "/data/rank_%s_index%d.bin");
-          printfd("loading indices from %s\n", path);
-          for (int i = 0; i < statsLength; i++) {
-            char buffer[256];
-            sprintf(buffer, path, tables[slot], i);
-
-            if (!loadIndex(slot, i, buffer)) {
-              printfd("could not load indices, starting index generation\n");
-              error = i;
-              break;
-            }
-          }
-        }
-
-        if (error > -1) {
-          errorOnLoad = true;
-          printfd("indices for %s couldn't load\n", tables[slot]);
+        if (!loadIndex(slot, i, buffer)) {
+          printfd("could not load indices, starting index generation\n");
+          error = i;
           break;
         }
-        moveGeneratedIndices(slot);
-        available[slot] = 1;
-
-        printfd("indices for %s loaded successfully\n", tables[slot]);
-      }
-
-      if (error == -1) {
-        printfd("all indices loaded successfully\n");
-        continue; // sleep until needed
-      }
-
-      // gotta free what we already had
-      for (int i = 0; i < error; i++)
-        free(genStatsStart[slot][i]);
-
-      free(genStatsStart[slot]);
-      free(genStatsEnd[slot]);
-
-      // now try to generate indices
-
-    } else {
-      time_t rawtime;
-      time(&rawtime);
-      struct tm* timeinfo = localtime(&rawtime);
-
-      int seconds = 0;
-      if (timeinfo->tm_hour >= 15) {
-        seconds += 12 * 60 * 60;
-        seconds += (26 - timeinfo->tm_hour) * 60 * 60;
-      } else {
-        seconds += (14 - timeinfo->tm_hour) * 60 * 60;
-      }
-      seconds += (59 - timeinfo->tm_min) * 60;
-      seconds += 60 - timeinfo->tm_sec;
-
-      printfd("sleeping for %d seconds\n", seconds);
-
-      // sleep until 15:00:00 (today or tomorrow)
-      sleep(seconds);
-
-      printfd("wake up\n");
-
-      bool wasAvailable[tablesLength];
-      for (uint8_t slot = 0; slot < tablesLength; slot++) {
-        wasAvailable[slot] = available[slot] == 1;
-        available[slot] = 0;
-      }
-      sleep(5); // let other threads finish using indices before modifying them
-
-      printfd("free indices after wakeup\n");
-      for (uint8_t slot = 0; slot < tablesLength; slot++) {
-        if (wasAvailable[slot]) {
-          freeIndices(slot);
-        }
       }
     }
 
-    MYSQL *con = connectToMySQL();
-
-    if (con == NULL)
-      continue;
-
-    if (errorOnLoad) {
-      // already loaded a couple tables, let's just generate the missing ones
-      errorOnLoad = false;
-      for (uint8_t slot = 0; slot < tablesLength; slot++)
-        if (available[slot] == 0)
-          if (generateIndices(con, slot, qualificationQuery))
-            available[slot] = 1;
-    } else {
-      for (uint8_t slot = 0; slot < tablesLength; slot++)
-        if (generateIndices(con, slot, qualificationQuery))
-          available[slot] = 1;
+    if (error > -1) {
+      printfd("indices for %s couldn't load\n", tables[slot]);
+      break;
     }
+    moveGeneratedIndices(slot);
+    available[slot] = 1;
 
-    mysql_close(con);
+    printfd("indices for %s loaded successfully\n", tables[slot]);
   }
+
+  if (error > -1) {
+    // gotta free what we already had
+    for (int i = 0; i < error; i++)
+      free(genStatsStart[slot][i]);
+
+    free(genStatsStart[slot]);
+    free(genStatsEnd[slot]);
+
+    // and generate indices
+    generateAllIndices();
+  } else {
+    printfd("all indices loaded successfully\n");
+  }
+
+  didBoot = 1;
+  return NULL;
+}
+
+int cmd_UPDATEDONE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  const char* channelStr = "broadcast:update";
+  const char* messageStr = "done";
+
+  RedisModuleString *channel = RedisModule_CreateString(ctx, channelStr, strlen(channelStr));
+  RedisModuleString *message = RedisModule_CreateString(ctx, messageStr, strlen(messageStr));
+  RedisModule_PublishMessage(ctx, channel, message);
+  RedisModule_FreeString(ctx, channel);
+  RedisModule_FreeString(ctx, message);
+
+  if (didBoot == 1) {
+    pthread_create(&generatorThreadId, NULL, generateAllIndicesThread, NULL);
+  }
+
+  return RedisModule_ReplyWithLongLong(ctx, 1);
 }
 
 void onShutdown(void) {
@@ -584,7 +547,8 @@ void onShutdown(void) {
 
   printfd("shutting down module\n");
 
-  pthread_cancel(threadId);
+  pthread_cancel(bootThreadId);
+  pthread_cancel(generatorThreadId);
   printfd("free indices on unload\n");
   for (uint8_t slot = 0; slot < tablesLength; slot++)
     if (available[slot])
@@ -622,7 +586,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
 
   RedisModule_SubscribeToServerEvent(ctx, RedisModuleEvent_Shutdown, onServerShutdown);
 
-  pthread_create(&threadId, NULL, indexGenerator, NULL);
+  pthread_create(&bootThreadId, NULL, bootModule, NULL);
 
   return REDISMODULE_OK;
 }

@@ -20,6 +20,7 @@ services:
       - database
     networks:
       - database
+      - infrastructure
     environment:
       - DB
       - DB_IP
@@ -31,6 +32,8 @@ services:
       - A801_PASS
       - BATCH_SIZE
       - PIPE_SIZE
+      - INFRA_ADDR
+      - INFRA_RECONNECT
 
   redis:
     build: ./redis

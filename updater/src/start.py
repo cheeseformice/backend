@@ -8,6 +8,13 @@ from post_update import post_update
 from table import Table
 from utils import env
 
+from shared.miniredis import Client
+
+
+class env:
+	host = os.getenv("INFRA_ADDR", "redis:6379")
+	reconnect = float(os.getenv("INFRA_RECONNECT", "10"))
+
 
 logging.basicConfig(
 	format='[%(asctime)s] [%(levelname)s] %(message)s',
@@ -40,6 +47,22 @@ def start(loop):
 	))
 
 
+async def notify_redis():
+	if ":" in env.host:
+		address = env.host.split(":")
+		address[1] = int(address[1])
+	else:
+		address = env.host
+
+	client = Client(
+		address,
+		reconnect=env.reconnect,
+		loop=asyncio.get_event_loop()
+	)
+	await client.start()
+	await client.send("ranking.updatedone")
+
+
 def run(loop, pools):
 	runner = RunnerPool(
 		int(os.getenv("PIPE_SIZE", "100")),
@@ -58,6 +81,7 @@ def run(loop, pools):
 		runner.extract(member),
 	)))
 	loop.run_until_complete(post_update(player, tribe, member, *pools))
+	loop.run_until_complete(notify_redis())
 	logging.debug("end all")
 
 

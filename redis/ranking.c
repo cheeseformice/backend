@@ -127,6 +127,19 @@ int reply_GETPOS(RedisModuleCtx *ctx, int outdated, int position, int value) {
   return RedisModule_ReplyWithLongLong(ctx, value);
 }
 
+int cmd_UPDATEDONE(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+  const char* channelStr = "broadcast:update";
+  const char* messageStr = "done";
+
+  RedisModuleString *channel = RedisModule_CreateString(ctx, channelStr, strlen(channelStr));
+  RedisModuleString *message = RedisModule_CreateString(ctx, messageStr, strlen(messageStr));
+  RedisModule_PublishMessage(ctx, channel, message);
+  RedisModule_FreeString(ctx, channel);
+  RedisModule_FreeString(ctx, message);
+
+  return RedisModule_ReplyWithLongLong(ctx, 1);
+}
+
 /* RANKING.GETPOS name stat */
 // Returns approximate leaderboard position of stat
 int cmd_GETPOS(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
@@ -601,6 +614,10 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
 
   if (RedisModule_CreateCommand(ctx, "ranking.getpage",
       cmd_GETPAGE, "readonly", 1, 1, 1) == REDISMODULE_ERR)
+    return REDISMODULE_ERR;
+
+  if (RedisModule_CreateCommand(ctx, "ranking.updatedone",
+      cmd_UPDATEDONE, "readonly", 1, 1, 1) == REDISMODULE_ERR)
     return REDISMODULE_ERR;
 
   RedisModule_SubscribeToServerEvent(ctx, RedisModuleEvent_Shutdown, onServerShutdown);

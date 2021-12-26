@@ -45,7 +45,13 @@ async def on_boot(new):
 	)
 
 	service.loop.create_task(ping_db())
-	service.loop.create_task(update_roles())
+	await service.listen_broadcast("update")
+
+
+@service.event
+async def on_broadcast(channel, msg):
+	if channel == "update" and msg == "done":
+		await update_roles()
 
 
 async def ping_db():
@@ -114,44 +120,36 @@ async def write_roles(new_roles):
 
 
 async def update_roles():
-	while True:
-		run_at = datetime.utcnow()
-		if run_at.hour >= 15:
-			run_at = run_at + timedelta(days=1)
-		run_at = run_at.replace(hour=15, minute=0, second=0, microsecond=0)
-		diff = run_at - datetime.utcnow()
-		await asyncio.sleep(diff.total_seconds())
+	teams, names = await download_teams()
+	users = await get_new_names(names)
 
-		teams, names = await download_teams()
-		users = await get_new_names(names)
+	new_roles = {}  # user_id: role (int)
+	changes = {}  # old_name: new_name
 
-		new_roles = {}  # user_id: role (int)
-		changes = {}  # old_name: new_name
+	for user in users:
+		if user.new_name is None:
+			continue
 
-		for user in users:
-			if user.new_name is None:
-				continue
+		user_roles = 0
+		for idx, (role, _) in enumerate(tfm_roles):
+			if user.old_name in teams[role]:
+				user_roles |= 2 ** idx
 
-			user_roles = 0
-			for idx, (role, _) in enumerate(tfm_roles):
-				if user.old_name in teams[role]:
-					user_roles |= 2 ** idx
+		if user_roles > 0:
+			new_roles[user.id] = user_roles
 
-			if user_roles > 0:
-				new_roles[user.id] = user_roles
+		if user.changed:
+			changes[user.old_name.lower()] = user.new_name
 
-			if user.changed:
-				changes[user.old_name.lower()] = user.new_name
+	if changes:
+		async with aiohttp.ClientSession() as sess:
+			await sess.post(env.name_webhook, json={
+				"content": json.dumps(changes)
+			}, headers={
+				"Content-Type": "application/json"
+			})
 
-		if changes:
-			async with aiohttp.ClientSession() as sess:
-				await sess.post(env.name_webhook, json={
-					"content": json.dumps(changes)
-				}, headers={
-					"Content-Type": "application/json"
-				})
-
-		await write_roles(new_roles)
+	await write_roles(new_roles)
 
 
 @service.on_request("changes")

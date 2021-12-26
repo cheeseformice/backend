@@ -334,6 +334,9 @@ class Service:
 					elif worker not in self.other_workers[name]:
 						self.other_workers[name].append(worker)
 
+		elif channel.startswith("broadcast:"):
+			self.dispatch("broadcast", channel[10:], msg)
+
 	async def stop_coro(self):
 		self.running = False
 
@@ -392,3 +395,6 @@ class Service:
 
 		await self.dispatch("boot", self)
 		self.running = True
+
+	async def listen_broadcast(self, broadcast):
+		await self.redis.subscribe("broadcast:{}".format(broadcast))

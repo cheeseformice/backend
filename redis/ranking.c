@@ -282,7 +282,7 @@ void moveGeneratedIndices(int slot) {
   outdated[slot] = 0;
 }
 
-bool generateIndices(MYSQL *con, int slot, const char* qualificationQuery) {
+bool generateIndices(MYSQL *con, int slot, char* qualificationQuery) {
   printfd("generating indices\n");
   outdated[slot] = 1;
 
@@ -424,7 +424,7 @@ error:
   return false;
 }
 
-const char* getQualificationQuery() {
+char* getQualificationQuery() {
   FILE* fp = fopen("/data-shared/qualification.cfg", "r");
   if (fp == NULL)
     return "";
@@ -453,17 +453,20 @@ const char* getQualificationQuery() {
 }
 
 int generateAllIndices(void) {
-  const char* qualificationQuery = getQualificationQuery();
+  char* qualificationQuery = getQualificationQuery();
   MYSQL *con = connectToMySQL();
 
-  if (con == NULL)
+  if (con == NULL) {
+    free(qualificationQuery);
     return 1;
+  }
 
   for (uint8_t slot = 0; slot < tablesLength; slot++)
     if (generateIndices(con, slot, qualificationQuery))
       available[slot] = 1;
 
   mysql_close(con);
+  free(qualificationQuery);
   return 0;
 }
 
@@ -473,7 +476,7 @@ void *generateAllIndicesThread(void *arg) {
 }
 
 void *bootModule(void *arg) {
-  const char* qualificationQuery = getQualificationQuery();
+  char* qualificationQuery = getQualificationQuery();
   printfd("using qualification query '%s'\n", qualificationQuery);
 
   uint8_t slot;
@@ -521,6 +524,7 @@ void *bootModule(void *arg) {
     printfd("all indices loaded successfully\n");
   }
 
+  free(qualificationQuery);
   didBoot = 1;
   return NULL;
 }

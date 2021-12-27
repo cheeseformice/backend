@@ -273,6 +273,10 @@ class Service:
 			raise ServiceError()
 
 	def on_channel_message(self, channel, msg):
+		if channel.startswith("broadcast:"):
+			self.dispatch("broadcast", channel[10:], msg)
+			return
+
 		msg = json.loads(msg)
 
 		if channel == self.my_channel:
@@ -333,9 +337,6 @@ class Service:
 						self.other_workers[name] = [worker]
 					elif worker not in self.other_workers[name]:
 						self.other_workers[name].append(worker)
-
-		elif channel.startswith("broadcast:"):
-			self.dispatch("broadcast", channel[10:], msg)
 
 	async def stop_coro(self):
 		self.running = False

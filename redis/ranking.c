@@ -43,6 +43,8 @@ const char* validStats[statsLength] = {
   "score_overall",
 };
 
+char* globalQualificationQuery;
+
 int** statsStart[tablesLength];
 int** statsEnd[tablesLength];
 
@@ -452,32 +454,28 @@ char* getQualificationQuery() {
   return query;
 }
 
-int generateAllIndices(void) {
-  char* qualificationQuery = getQualificationQuery();
+int generateAllIndices(char* qualificationQuery) {
   MYSQL *con = connectToMySQL();
 
-  if (con == NULL) {
-    free(qualificationQuery);
+  if (con == NULL)
     return 1;
-  }
 
   for (uint8_t slot = 0; slot < tablesLength; slot++)
     if (generateIndices(con, slot, qualificationQuery))
       available[slot] = 1;
 
   mysql_close(con);
-  free(qualificationQuery);
   return 0;
 }
 
 void *generateAllIndicesThread(void *arg) {
-  generateAllIndices();
+  generateAllIndices(globalQualificationQuery);
   return NULL;
 }
 
 void *bootModule(void *arg) {
-  char* qualificationQuery = getQualificationQuery();
-  printfd("using qualification query '%s'\n", qualificationQuery);
+  globalQualificationQuery = getQualificationQuery();
+  printfd("using qualification query '%s'\n", globalQualificationQuery);
 
   uint8_t slot;
   int error = -1;
@@ -519,12 +517,11 @@ void *bootModule(void *arg) {
     free(genStatsEnd[slot]);
 
     // and generate indices
-    generateAllIndices();
+    generateAllIndices(globalQualificationQuery);
   } else {
     printfd("all indices loaded successfully\n");
   }
 
-  free(qualificationQuery);
   didBoot = 1;
   return NULL;
 }

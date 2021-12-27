@@ -23,6 +23,7 @@ services:
       - infrastructure
     volumes:
       - "./shared:/src/shared"
+      - "redis-socket:/tmp/docker"
     environment:
       - DB
       - DB_IP

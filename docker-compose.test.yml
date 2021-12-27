@@ -36,6 +36,7 @@ services:
       - infrastructure
     volumes:
       - "./shared:/src/shared"
+      - "test-redis-socket:/tmp/docker"
     environment:
       - DB
       - DB_IP

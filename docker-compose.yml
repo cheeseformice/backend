@@ -21,6 +21,8 @@ services:
     networks:
       - database
       - infrastructure
+    volumes:
+      - "./shared:/src/shared"
     environment:
       - DB
       - DB_IP

@@ -141,6 +141,8 @@ def preprocess_shaman(path):
 			os.path.join(shaman_dir, "{}.svg".format(_id))
 		))
 
+	return renames
+
 
 def apply_renames(renames):
 	for source, dest in renames:

@@ -43,7 +43,7 @@ class Shaman(AssetLoader):
 		super().preprocess()
 
 		g = self.doc.getElementsByTagName("g")[0]
-		g.setAttribute("id", self.section)
+		g.setAttribute("id", self.id)
 
 		self._render = g.toxml()
 

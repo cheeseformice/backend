@@ -17,7 +17,7 @@ def generate_qualification_query(tbl):
 			raise Exception("Malformed qualification config")
 
 		qualification_query.append(attr >= int(minimum))
-	qualification_query = and_(*qualification_query)
+	return and_(*qualification_query)
 
 
 player_qualification_query = generate_qualification_query(player)

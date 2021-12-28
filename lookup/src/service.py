@@ -364,7 +364,7 @@ async def lookup_tribe(request):
 			without_seek = False
 			response = await service.redis.send(
 				"ranking.getpage",
-				"tribe",
+				"tribe_stats",
 				db_field,
 				offset
 			)

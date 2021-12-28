@@ -9,6 +9,7 @@ target = os.path.join(src, "..", "assets")
 poses_dir = os.path.join(target, "poses")
 furs_dir = os.path.join(target, "furs")
 costumes_dir = os.path.join(target, "costumes")
+shaman_dir = os.path.join(target, "shaman")
 
 sections = [
 	"head",
@@ -25,7 +26,7 @@ sections = [
 ]
 
 
-for path in (target, poses_dir, furs_dir, costumes_dir):
+for path in (target, poses_dir, furs_dir, costumes_dir, shaman_dir):
 	if not os.path.isdir(path):
 		os.mkdir(path)
 
@@ -123,6 +124,24 @@ def preprocess_costumes(path):
 	return renames
 
 
+def preprocess_shaman(path):
+	renames = []
+
+	for directory in os.listdir(path):
+		if "$" not in directory:
+			continue
+
+		_, _, _, _id = directory.split("_")
+
+		tmp = os.path.join(path, directory, "1.svg")
+		remove_first_line(tmp)
+
+		renames.append((
+			tmp,
+			os.path.join(shaman_dir, "{}.svg".format(_id))
+		))
+
+
 def apply_renames(renames):
 	for source, dest in renames:
 		if os.path.exists(dest):
@@ -153,6 +172,9 @@ for file in os.listdir(src):
 
 			elif directory == "costumes":
 				renames = preprocess_costumes(path)
+
+			elif directory == "shaman":
+				renames = preprocess_shaman(path)
 
 			else:
 				continue

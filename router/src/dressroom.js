@@ -65,7 +65,7 @@ router.get("/fur/:id", async (req, res) => {
 	}, png !== undefined ? pngConverter(res) : handleBasicServiceResult(res, "image/svg+xml"));
 });
 
-router.get("/costume/:section/:id", async (req, res) => {
+router.get("/costume/:section/:costume", async (req, res) => {
 	// Someone wants to get a costume SVG
 	var { section, costume } = req.params;
 	var { colors, png } = req.query;
@@ -110,6 +110,54 @@ router.get("/costume/:section/:id", async (req, res) => {
 	service.request("dressroom", "costume", {
 		section: section,
 		costume: costume,
+		colors: colors
+	}, png !== undefined ? pngConverter(res) : handleBasicServiceResult(res, "image/svg+xml"));
+});
+
+router.get("/shaman/:item", async (req, res) => {
+	// Someone wants to get a shaman item SVG
+	var { item } = req.params;
+	var { colors, png } = req.query;
+
+	if (png !== undefined) {
+		const auth = assertAuthorization(req, res, {bot: true});
+		if (!auth) { return; }
+
+		const result = await checkRateLimit(req, res, "dressroomPNG");
+		if (!result) { return; }
+	}
+
+	// Check the request
+	item = parseInt(item);
+	if (isNaN(item) || item < 1) {
+		return writeError(res, 400, "The given shaman item is invalid.");
+	}
+
+	// Colors parameter is supposed to be an array. If it is sent many times,
+	// then express gives us an array. Otherwise, a string.
+	if (!colors) {
+		colors = [];
+	} else if (typeof colors === "string") {
+		colors = [colors];
+	}
+
+	for (var i = 0; i < colors.length; i++) {
+		// Check every color is valid
+		let color = parseInt(colors[i], 16);
+
+		if (isNaN(color)) {
+			return writeError(
+				res, 400,
+				`${colors[i]} doesn't look like a valid color`
+			);
+		}
+
+		colors[i] = color;
+	}
+
+	// Send the request to the dressroom service and return whatever it says
+	service.request("dressroom", "shaman", {
+		item: item,
 		colors: colors
 	}, png !== undefined ? pngConverter(res) : handleBasicServiceResult(res, "image/svg+xml"));
 });

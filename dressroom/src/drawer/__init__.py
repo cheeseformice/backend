@@ -3,6 +3,7 @@ import os
 from .pose import Pose
 from .fur import Fur
 from .costume import sections, Costume
+from .shaman import Shaman
 
 
 assets = os.path.abspath(
@@ -14,16 +15,16 @@ assets = os.path.abspath(
 
 get_section_name = sections.get
 
-pose_list, fur_list, costume_list = [], [], {}
-poses_cache, furs_cache, costumes_cache = {}, {}, {}
+pose_list, fur_list, costume_list, shaman_list = [], [], {}, []
+poses_cache, furs_cache, costumes_cache, shamans_cache = {}, {}, {}, {}
 
 
 def read_assets():
 	global pose_list, fur_list, costume_list
 	global poses_cache, furs_cache, costumes_cache
 
-	pose_list, fur_list, costume_list = [], [], {}
-	poses_cache, furs_cache, costumes_cache = {}, {}, {}
+	pose_list, fur_list, costume_list, shaman_list = [], [], {}, []
+	poses_cache, furs_cache, costumes_cache, shamans_cache = {}, {}, {}, {}
 
 	for pose in os.listdir(
 		os.path.join(assets, "poses")
@@ -57,6 +58,17 @@ def read_assets():
 
 	for section in sections.values():
 		costumes_cache[section] = {}
+
+	for item in os.listdir(
+		os.path.join(assets, "shaman")
+	):
+		_id, ext = item.rsplit(".", 1)
+		if ext != "svg":
+			continue
+		if not _id.isdigit():
+			continue
+
+		shaman_list.append(int(_id))
 
 
 def get_pose(pose, head: bool):
@@ -95,6 +107,16 @@ def get_costume(section_name, costume):
 		cache[costume] = Costume(section_name, costume)
 
 	return cache[costume]
+
+
+def get_shaman_item(item):
+	if item not in shaman_list:
+		return
+
+	if item not in shamans_cache:
+		shamans_cache[item] = Shaman(item)
+
+	return shamans_cache[item]
 
 
 read_assets()

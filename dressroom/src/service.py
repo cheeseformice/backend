@@ -13,7 +13,7 @@ if __name__ == "__main__":
 from shared.pyservice import Service  # noqa
 
 from drawer import read_assets, get_pose, get_fur, get_costume, \
-	get_section_name  # noqa
+	get_section_name, get_shaman_item  # noqa
 
 
 service = Service("dressroom")
@@ -77,6 +77,26 @@ async def draw_costume(request):
 		costume.asset,
 		*costume.generate_color(request.colors),
 		costume.render,
+		"</svg>"
+	]))
+
+
+@service.on_request("shaman")
+async def draw_shaman_item(request):
+	item = get_shaman_item(request.item)
+	if item is None:
+		await request.reject(
+			"NotFound",
+			"Item {}."
+			.format(request.item)
+		)
+		return
+
+	await request.send("".join([
+		SVG_DEF,
+		item.asset,
+		*item.generate_color(request.colors),
+		item.render,
 		"</svg>"
 	]))
 

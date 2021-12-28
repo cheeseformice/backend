@@ -20,8 +20,8 @@ poses_cache, furs_cache, costumes_cache, shamans_cache = {}, {}, {}, {}
 
 
 def read_assets():
-	global pose_list, fur_list, costume_list
-	global poses_cache, furs_cache, costumes_cache
+	global pose_list, fur_list, costume_list, shaman_list
+	global poses_cache, furs_cache, costumes_cache, shamans_cache
 
 	pose_list, fur_list, costume_list, shaman_list = [], [], {}, []
 	poses_cache, furs_cache, costumes_cache, shamans_cache = {}, {}, {}, {}

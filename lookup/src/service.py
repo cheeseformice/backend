@@ -8,7 +8,8 @@ from shared.pyservice import Service
 from shared.roles import to_cfm_roles, to_tfm_roles
 from shared.models import roles, player, tribe, tribe_stats, member, periods, \
 	disqualified
-from shared.qualification import qualification_query
+from shared.qualification import player_qualification_query, \
+	tribe_qualification_query
 
 from aiomysql.sa import create_engine
 from sqlalchemy import and_, desc, func
@@ -184,7 +185,7 @@ async def lookup_player(request):
 			query = query.where(and_(
 				where,
 				disqualified.c.id.is_(None),
-				qualification_query,
+				player_qualification_query,
 			))
 
 			count_query = count_query.select_from(
@@ -209,7 +210,7 @@ async def lookup_player(request):
 						query = query.where(and_(
 							field <= response[1],
 							disqualified.c.id.is_(None),
-							qualification_query,
+							player_qualification_query,
 						))
 
 				else:
@@ -224,7 +225,7 @@ async def lookup_player(request):
 				if without_seek:
 					query = query.where(and_(
 						disqualified.c.id.is_(None),
-						qualification_query,
+						player_qualification_query,
 					))
 			count_query = count_query.select_from(period)
 
@@ -360,15 +361,23 @@ async def lookup_tribe(request):
 
 		field = getattr(period.c, db_field)
 		if request.period == "overall":
+			without_seek = False
 			response = await service.redis.send(
 				"ranking.getpage",
-				"tribe_stats",
+				"tribe",
 				db_field,
 				offset
 			)
 			if isinstance(response, list):
-				offset -= response[0]
-				query = query.where(field <= response[1])
+				if response[2] and offset < 100:
+					# outdated indices and offset is small
+					without_seek = True
+				else:
+					offset -= response[0]
+					query = query.where(and_(
+						field <= response[1],
+						tribe_qualification_query,
+					))
 
 			else:
 				if offset > 10000:
@@ -377,6 +386,10 @@ async def lookup_tribe(request):
 						"The page is too far."
 					)
 					return
+				without_seek = True
+
+			if without_seek:
+				query = query.where(tribe_qualification_query)
 		query = query.order_by(desc(field))
 
 		count_query = (
@@ -478,8 +491,10 @@ async def get_position(request):
 			condition = and_(
 				condition,
 				disqualified.c.id.is_(None),
-				qualification_query
+				player_qualification_query
 			)
+		else:
+			condition = and_(condition, tribe_qualification_query)
 
 		result = await conn.execute(
 			select(func.count().label("count"))

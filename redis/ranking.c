@@ -339,7 +339,12 @@ bool generateIndices(MYSQL *con, int slot, char* qualificationQuery) {
       int length = strlen(preFmt) + 1 + strlen(qualificationQuery);
       snprintf(fmt, length, preFmt, qualificationQuery);
     } else if (slot == 1) {
-      fmt = "SELECT `%s` FROM `%s` ORDER BY `%s` DESC";
+      char* preFmt = "SELECT `p`.`%%s` "
+                     "FROM `%%s` as `p` "
+                     "WHERE 1=1%s "
+                     "ORDER BY `p`.`%%s` DESC";
+      int length = strlen(preFmt) + 1 + strlen(qualificationQuery);
+      snprintf(fmt, length, preFmt, qualificationQuery);
     } else {
       printfd("unknown table slot %d\n", slot);
       goto error;

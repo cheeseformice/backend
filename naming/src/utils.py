@@ -33,6 +33,7 @@ tfm_roles = (
 	("module", "mt"),
 	("funcorp", "fc"),
 	("fashion", "fs"),
+	("flash", "fla"),
 )
 
 service = None

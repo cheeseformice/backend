@@ -12,6 +12,7 @@ tfm_roles = (
 	"module",
 	"funcorp",
 	"fashion",
+	"flash",
 )
 
 

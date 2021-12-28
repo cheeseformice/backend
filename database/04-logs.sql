@@ -15,7 +15,6 @@ CREATE TABLE `tribe_active` (
   `id` bigint(20) NOT NULL DEFAULT '0',
   `members` bigint(20) NOT NULL DEFAULT '0',
   `active` bigint(20) NOT NULL DEFAULT '0',
-  `members_sqrt` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
 

@@ -154,13 +154,12 @@ async def write_tribe_logs(tribe, stats, inte):
 		await inte.execute("TRUNCATE `tribe_active`")
 		await inte.execute(
 			"INSERT INTO `tribe_active` \
-				(`id`, `members`, `active`, `members_sqrt`) \
+				(`id`, `members`, `active`) \
 			\
 			SELECT \
 				`t`.`id`, \
 				COUNT(`m`.`id_member`) as `members`, \
-				COUNT(`p`.`id`) as `active`, \
-				POWER(COUNT(`m`.`id_member`), 0.5) as `members_sqrt` \
+				COUNT(`p`.`id`) as `active` \
 			FROM \
 				`tribe` as `t` \
 				INNER JOIN `member` as `m` \
@@ -171,17 +170,6 @@ async def write_tribe_logs(tribe, stats, inte):
 			HAVING `active` > 0"
 		)
 
-		logging.debug("[tribe] write stats changelogs")
-		await inte.execute(
-			"INSERT INTO `tribe_stats_changelog` (`{}`) \
-			SELECT `o`.* \
-			FROM `tribe_active` as `n` \
-			INNER JOIN `tribe_stats` as `o` ON `n`.`id` = `o`.`id`"
-			.format(
-				"`,`".join(stats.write_columns)
-			)
-		)
-
 	logging.debug("[tribe] calculating stats")
 
 	# Prepare query
@@ -190,13 +178,11 @@ async def write_tribe_logs(tribe, stats, inte):
 			"COUNT(`m`.`id_member`) as `members`",
 			"COUNT(`p_n`.`id`) as `active`",
 		]
-		div_by = "POWER(COUNT(`m`.`id_member`), 0.5)"
 	else:
 		columns = [
 			"`t`.`members`",
 			"`t`.`active`",
 		]
-		div_by = "`t`.`members_sqrt`"
 
 	for column in stats.columns:
 		if column not in (
@@ -205,8 +191,8 @@ async def write_tribe_logs(tribe, stats, inte):
 			"active",
 		):
 			columns.append(
-				"SUM(`p`.`{0}`) / {1} as `{0}`"
-				.format(column, div_by)
+				"SUM(`p`.`{0}`) as `{0}`"
+				.format(column,)
 			)
 
 	# Run query
@@ -221,7 +207,10 @@ async def write_tribe_logs(tribe, stats, inte):
 				ON `t`.`id` = `m`.`id_tribe` \
 			INNER JOIN `player` as `p` \
 				ON `p`.`id` = `m`.`id_member` \
+			LEFT JOIN `disqualified` as `d` \
+				ON `d`.`id` = `p`.`id` \
 			{2} \
+		WHERE `d`.`id` IS NULL \
 		GROUP BY `t`.`id`"
 		.format(
 			",".join(columns),
@@ -233,3 +222,16 @@ async def write_tribe_logs(tribe, stats, inte):
 			""
 		)
 	)
+
+	# Write changelogs
+	if not tribe.is_empty:
+		logging.debug("[tribe] write stats changelogs")
+		await inte.execute(
+			"INSERT INTO `tribe_stats_changelog` (`{}`) \
+			SELECT `o`.* \
+			FROM `tribe_active` as `n` \
+			INNER JOIN `tribe_stats` as `o` ON `n`.`id` = `o`.`id`"
+			.format(
+				"`,`".join(stats.write_columns)
+			)
+		)

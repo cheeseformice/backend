@@ -8,6 +8,7 @@ qualification = configparser.ConfigParser()
 qualification.read("/src/shared/qualification.cfg")
 qualification = qualification["req"]
 
+
 def generate_qualification_query(tbl):
 	qualification_query = []
 	for key, minimum in qualification.items():

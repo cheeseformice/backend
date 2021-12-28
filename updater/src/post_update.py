@@ -223,6 +223,34 @@ async def write_tribe_logs(tribe, stats, inte):
 		)
 	)
 
+	logging.debug("[tribe] calculating scores")
+	await inte.execute(
+		"UPDATE `tribe_stats` as `t` {1} \
+		SET {0}"
+		.format(
+			",".join((
+				"`t`.`{}` = {}"
+				.format(column, formula)
+				for column, formula in formulas.items()
+			)),
+
+			""
+			if tribe.is_empty else
+			"INNER JOIN `tribe_active` as `a` ON `a`.`id` = `t`.`id`"
+		)
+	)
+	await inte.execute(
+		"UPDATE `tribe_stats` as `t` {1} \
+		SET `t`.`score_overall` = {0}"
+		.format(
+			overall_scores["alltime"],
+
+			""
+			if tribe.is_empty else
+			"INNER JOIN `tribe_active` as `a` ON `a`.`id` = `t`.`id`"
+		)
+	)
+
 	# Write changelogs
 	if not tribe.is_empty:
 		logging.debug("[tribe] write stats changelogs")

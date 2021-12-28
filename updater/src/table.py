@@ -35,8 +35,8 @@ class Table:
 		self.write_columns = []
 		self.composite_scores = []
 		for row in await cursor.fetchall():
-			if self.name == "player" and row[0].startswith("score_"):
-				if row[0] == "score_overall":
+			if row[0].startswith("score_"):
+				if self.name == "tribe_stats" or row[0] == "score_overall":
 					# This score is calculated post-download
 					self.composite_scores.append(",1 as `{}`".format(row[0]))
 

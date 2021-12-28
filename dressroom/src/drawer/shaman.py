@@ -47,6 +47,10 @@ class Shaman(AssetLoader):
 
 		self._render = g.toxml()
 
+		svg = self.doc.getElementsByTagName("svg")[0]
+		svg = svg.cloneNode(False)  # removes all children
+		self._svg_def = svg.toxml()[:-2] + ">"
+
 	def generate_color(self, colors):
 		self._preprocess()
 
@@ -60,6 +64,11 @@ class Shaman(AssetLoader):
 			filters.append(get_color_filter(self.id_format(idx), color))
 
 		return filters
+
+	@property
+	def svg_def(self):
+		self._preprocess()
+		return self._svg_def
 
 	@property
 	def render(self):

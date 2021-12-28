@@ -93,7 +93,7 @@ async def draw_shaman_item(request):
 		return
 
 	await request.send("".join([
-		SVG_DEF,
+		item.svg_def,
 		item.asset,
 		*item.generate_color(request.colors),
 		item.render,

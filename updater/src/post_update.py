@@ -173,6 +173,7 @@ async def write_tribe_logs(tribe, stats, inte):
 	logging.debug("[tribe] calculating stats")
 
 	# Prepare query
+	stats_columns = ["id", "members", "active"]
 	if tribe.is_empty:
 		columns = [
 			"COUNT(`m`.`id_member`) as `members`",
@@ -194,10 +195,11 @@ async def write_tribe_logs(tribe, stats, inte):
 				"SUM(`p`.`{0}`) as `{0}`"
 				.format(column,)
 			)
+			stats_columns.append(column)
 
 	# Run query
 	await inte.execute(
-		"REPLACE INTO `tribe_stats` \
+		"REPLACE INTO `tribe_stats` (`{3}`) \
 		SELECT \
 			`t`.`id`, \
 			{0} \
@@ -219,7 +221,9 @@ async def write_tribe_logs(tribe, stats, inte):
 			"LEFT JOIN `player_new` as `p_n` ON `p_n`.`id` = `p`.`id`"
 			if tribe.is_empty else
 			# No need to join player_new if we are using tribe_active
-			""
+			"",
+
+			"`,`".join(stats_columns),
 		)
 	)
 

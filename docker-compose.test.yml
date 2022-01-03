@@ -254,6 +254,7 @@ services:
     networks:
       - router
       - frontend
+      - tfmapi
     ports:
       - "80:80"
 
@@ -269,4 +270,6 @@ networks:
   infrastructure:
   router:
   frontend:
+    external: true
+  tfmapi:
     external: true

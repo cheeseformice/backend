@@ -9,6 +9,14 @@ from sqlalchemy.dialects.mysql import insert
 from shared.schemas import as_dict_list
 
 
+role_emojis = {
+	"dev": "<:redfeather:929443930032992256>",
+	"admin": "<:redfeather:929443930032992256>",
+	"mod": "<:yellowfeather:929444076191879188>",
+	"translator": "<:purplefeather:929444194345447484>",
+}
+
+
 def name_link(name: str) -> str:
 	if name is None:
 		return "Could not fetch player name"
@@ -17,10 +25,15 @@ def name_link(name: str) -> str:
 	return f"[{name}](https://cheese.formice.com/p/{link_name})"
 
 
+def add_emoji(role):
+	return f"{role_emojis[role]} `{role}`"
+
+
 def to_embed_roles(roles):
 	if not roles:
 		return "None"
-	return "`{}`".format("`, `".join(roles))
+
+	return "\n".join(map(add_emoji, roles))
 
 
 def prepare_role_embed(

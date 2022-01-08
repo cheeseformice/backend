@@ -1,9 +1,79 @@
 from common import service
+from datetime import datetime
 
 from shared.roles import from_cfm_roles, to_cfm_roles
 from shared.models import roles, player
 from sqlalchemy.sql import select
 from sqlalchemy.dialects.mysql import insert
+
+from shared.schemas import as_dict_list
+
+
+def name_link(name: str) -> str:
+	if name is None:
+		return "Could not fetch player name"
+
+	link_name = name.replace("#", "-")
+	return f"[{name}](https://cheese.formice.com/p/{link_name})"
+
+
+def to_embed_roles(roles):
+	if not roles:
+		return "None"
+	return "`{}`".format("`, `".join(roles))
+
+
+def prepare_role_embed(
+	admin_id, admin_name,
+	subject_id, subject_name,
+	current_roles, new_roles
+):
+	return {
+		"title": "Roles modified",
+		"color": 0xF5A623,
+		"timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+		"fields": [
+			{
+				"name": "Subject",
+				"value": f"{name_link(subject_name)}: `{subject_id}`",
+				"inline": True,
+			},
+			{
+				"name": "Responsible administrator",
+				"value": f"{name_link(admin_name)}: `{admin_id}`",
+				"inline": True,
+			},
+			{
+				"name": "Old roles",
+				"value": f"{to_embed_roles(current_roles)}"
+			},
+			{
+				"name": "New roles",
+				"value": f"{to_embed_roles(new_roles)}"
+			},
+		],
+	}
+
+
+@service.on_request("get-privileged")
+async def get_privileged(request):
+	async with service.db.acquire() as conn:
+		result = await conn.execute(
+			select(
+				player.c.id,
+				player.c.name,
+				roles.c.cfm.label("cfm_roles"),
+				roles.c.tfm.label("tfm_roles"),
+			)
+			.select_from(
+				player
+				.join(roles, roles.c.id == player.c.id)
+			)
+			.where(roles.c.cfm > 0)
+		)
+		rows = await result.fetchall()
+
+	await request.send(as_dict_list("BasicPlayer", rows))
 
 
 @service.on_request("change-roles")
@@ -12,6 +82,7 @@ async def change_roles(request):
 		result = await conn.execute(
 			select(
 				player.c.id,
+				player.c.name,
 				roles.c.cfm,
 			)
 			.select_from(
@@ -29,7 +100,18 @@ async def change_roles(request):
 			)
 			return
 
-		new_roles = request.roles
+		admin = await conn.execute(
+			select(player.c.name)
+			.select_from(player)
+			.where(player.c.id == request.auth["user"])
+		)
+		admin = await admin.first()
+		if admin is None:
+			raise Exception("admin not in db?")
+
+		# normalize roles list in case there are unknown roles
+		new_roles = to_cfm_roles(from_cfm_roles(request.roles))
+		current_roles = []
 		if row.cfm is not None:
 			# The user had previous roles
 			current_roles = to_cfm_roles(row.cfm)
@@ -43,7 +125,7 @@ async def change_roles(request):
 				)
 				return
 
-			source_roles = request.user["cfm_roles"]
+			source_roles = request.auth["cfm_roles"]
 			if "admin" in current_roles \
 				and "admin" not in new_roles \
 				and "dev" not in source_roles:
@@ -55,6 +137,12 @@ async def change_roles(request):
 				return
 
 		await request.end()
+
+		await service.wh.post(None, [prepare_role_embed(
+			request.auth["user"], admin.name,
+			row.id, row.name,
+			current_roles, new_roles,
+		)])
 
 		new_roles = from_cfm_roles(new_roles)
 		await service.send_strict("broadcast:roles", "cfm", **{

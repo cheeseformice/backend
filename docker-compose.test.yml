@@ -118,6 +118,8 @@ services:
       - INFRA_PING_DELAY
       - INFRA_PING_TIMEOUT
       - TICKET_API
+      - ROLES_WH_ID
+      - ROLES_WH_TOKEN
       - HASH_WORKERS=1
       - WORKERS=1
 

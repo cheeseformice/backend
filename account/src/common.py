@@ -1,7 +1,7 @@
 import os
 import asyncio
 
-from webhook import Webhook
+from shared.webhook import Webhook
 from shared.pyservice import Service
 from aiomysql.sa import create_engine
 

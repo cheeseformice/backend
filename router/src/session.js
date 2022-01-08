@@ -15,6 +15,19 @@ const { checkRateLimit } = require("./ratelimits");
 
 const router = express.Router();
 
+router.get("/users/roles", (req, res) => {
+	const auth = assertAuthorization(req, res, {
+		cfm: ["dev", "admin"]
+	});
+	if (!auth) { return; }
+
+	service.request(
+		"auth", "get-privileged",
+		{ auth },
+		handleBasicServiceResult(res)
+	)
+})
+
 router.put("/users/:name/roles", (req, res) => {
 	const auth = assertAuthorization(req, res, {
 		cfm: ["dev", "admin"]
@@ -54,7 +67,7 @@ router.put("/users/:name/roles", (req, res) => {
 	service.request(
 		"auth", "change-roles",
 		{
-			user: auth,
+			auth,
 			target: name,
 			roles: req.body.roles
 		}, (result) => {

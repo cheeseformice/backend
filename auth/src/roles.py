@@ -30,7 +30,7 @@ def prepare_role_embed(
 ):
 	return {
 		"title": "Roles modified",
-		"color": 0xF5A623,
+		"color": 0x4D7489,
 		"timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
 		"fields": [
 			{

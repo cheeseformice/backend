@@ -227,6 +227,11 @@ async def lookup_player(request):
 						disqualified.c.id.is_(None),
 						player_qualification_query,
 					))
+			else:
+				query = query.where(and_(
+					disqualified.c.id.is_(None),
+					player_qualification_query,
+				))
 			count_query = count_query.select_from(period)
 
 		query = query.order_by(desc(field))
@@ -390,6 +395,8 @@ async def lookup_tribe(request):
 
 			if without_seek:
 				query = query.where(tribe_qualification_query)
+		else:
+			query = query.where(tribe_qualification_query)
 		query = query.order_by(desc(field))
 
 		count_query = (

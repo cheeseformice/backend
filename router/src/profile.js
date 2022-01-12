@@ -172,7 +172,7 @@ router.get("/tribes/:idOrName", (req, res) => {
 	// Then return whatever it replies to the user
 	service.request("profile", "tribe", request, (result) => {
 		if (result.type == "simple") {
-			if (!!hideRequest && !!result.content.id) {
+			if (!hideRequest && !!result.content.id) {
 				pushProfile("tribe", {
 					id: result.content.id,
 					name: result.content.name,

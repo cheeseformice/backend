@@ -359,6 +359,12 @@ async def lookup_tribe(request):
 		db_field = rankable_fields[request.order]
 
 		period = periods["tribe"][request.period]
+		select_from = tribe
+		if period != tribe_stats:
+			select_from = select_from.join(
+				tribe_stats, tribe_stats.c.id == tribe.c.id
+			)
+
 		query = (
 			select(
 				tribe.c.id,
@@ -366,7 +372,7 @@ async def lookup_tribe(request):
 				period,
 			)
 			.select_from(
-				tribe
+				select_from
 				.join(period, period.c.id == tribe.c.id)
 			)
 		)

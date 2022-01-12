@@ -265,11 +265,14 @@ async def lookup_player(request):
 			)
 			.where(name_query)
 		)
-		count_query = (
-			select(func.count().label("total"))
-			.select_from(select_from)
-			.where(name_query)
-		)
+		if len(name) < 4:
+			count_query = None
+		else:
+			count_query = (
+				select(func.count().label("total"))
+				.select_from(select_from)
+				.where(name_query)
+			)
 
 	elif tribe is not None:
 		where = member.c.id_tribe == tribe
@@ -295,8 +298,12 @@ async def lookup_player(request):
 		)
 
 	async with service.db.acquire() as conn:
-		result = await conn.execute(count_query)
-		total = await result.first()
+		if count_query is None:
+			total = None
+		else:
+			result = await conn.execute(count_query)
+			row = await result.first()
+			total = row.total
 
 		result = await conn.execute(query.offset(offset).limit(limit))
 		rows = await result.fetchall()
@@ -331,7 +338,7 @@ async def lookup_player(request):
 				row_resp[key] = value
 
 	await request.send({
-		"total": total.total,
+		"total": total,
 		"page": response,
 	})
 

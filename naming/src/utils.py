@@ -34,6 +34,7 @@ tfm_roles = (
 	("funcorp", "fc"),
 	("fashion", "fs"),
 	("flash", "fla"),
+	("event", "evt"),
 )
 
 service = None

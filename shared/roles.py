@@ -13,6 +13,7 @@ tfm_roles = (
 	"funcorp",
 	"fashion",
 	"flash",
+	"event",
 )
 
 

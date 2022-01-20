@@ -14,6 +14,7 @@ tfm_roles = (
 	"fashion",
 	"flash",
 	"event",
+	"discorderator",
 )
 
 

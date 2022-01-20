@@ -35,6 +35,7 @@ tfm_roles = (
 	("fashion", "fs"),
 	("flash", "fla"),
 	("event", "evt"),
+	("discorderator", "disc"),
 )
 
 service = None

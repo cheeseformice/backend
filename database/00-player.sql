@@ -1,6 +1,7 @@
 CREATE TABLE `player` (
   `id` bigint(20) NOT NULL,
   `name` varchar(100) DEFAULT NULL,
+  `registration_date` bigint(20) DEFAULT NULL,
   `title` text,
 
   `unlocked_titles` text,

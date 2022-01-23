@@ -134,6 +134,10 @@ class RunnerPool:
 		count, total = 0, math.ceil(row[0] / self.batch)
 
 		# Send query to the database
+		crc_columns = list(filter(
+			lambda col: col != "registration_date",
+			table.columns
+		))
 		await exte.execute(
 			"SELECT \
 				`{}`, CRC32(CONCAT_WS('', `{}`)) \
@@ -141,7 +145,7 @@ class RunnerPool:
 				`{}`"
 			.format(
 				table.primary,
-				"`,`".join(table.columns),
+				"`,`".join(crc_columns),
 				table.name
 			)
 		)
@@ -402,12 +406,17 @@ class RunnerPool:
 			count, total = 0, math.ceil(row[0] / self.batch)
 
 			# Send query to the database
+			crc_columns = list(filter(
+				lambda col: col != "registration_date",
+				table.columns
+			))
 			await exte.execute(
 				"SELECT \
-					CRC32(CONCAT_WS('', `{0}`)), `{0}`{1} \
+					CRC32(CONCAT_WS('', `{0}`)), `{1}`{2} \
 				FROM \
-					`{2}`"
+					`{3}`"
 				.format(
+					"`,`".join(crc_columns),
 					"`,`".join(table.columns),
 					table.composite_scores,
 					table.name
@@ -502,17 +511,13 @@ class RunnerPool:
 			await inte.execute("TRUNCATE `{}_new`".format(table.name))
 
 		# Prepare query (it is waaaay faster this way)
-		columns = list(filter(
-			lambda col: col != "registration_date",
-			table.write_columns
-		))
 		query = (
 			"REPLACE INTO `{}{}` (`{}`) VALUES ({})"
 			.format(
 				table.name,
 				"" if table.is_empty else "_new",
-				"`,`".join(columns),
-				",".join(["%s"] * len(columns))
+				"`,`".join(table.write_columns),
+				",".join(["%s"] * len(table.write_columns))
 			)
 		)
 

@@ -44,7 +44,7 @@ class Table:
 					self.composite_scores.append(
 						",{} as `{}`".format(formulas[row[0]], row[0])
 					)
-			elif row[0] != "registration_date":
+			else:
 				self.columns.append(row[0])
 			self.write_columns.append(row[0])
 

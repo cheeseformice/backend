@@ -502,13 +502,17 @@ class RunnerPool:
 			await inte.execute("TRUNCATE `{}_new`".format(table.name))
 
 		# Prepare query (it is waaaay faster this way)
+		columns = list(filter(
+			lambda col: col != "registration_date",
+			table.write_columns
+		))
 		query = (
 			"REPLACE INTO `{}{}` (`{}`) VALUES ({})"
 			.format(
 				table.name,
 				"" if table.is_empty else "_new",
-				"`,`".join(table.write_columns),
-				",".join(["%s"] * len(table.write_columns))
+				"`,`".join(columns),
+				",".join(["%s"] * len(columns))
 			)
 		)
 

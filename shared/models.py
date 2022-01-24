@@ -95,6 +95,7 @@ player = sa.Table(
 	sa.Column("id", sa.BigInteger, primary_key=True),
 	sa.Column("name", sa.String(100), index=True),
 
+	sa.Column("registration_date", sa.BigInteger),
 	sa.Column("title", sa.Text),
 	sa.Column("badges", sa.Text),
 	sa.Column("unlocked_titles", sa.Text),
@@ -147,6 +148,7 @@ player_changelog = sa.Table(
 	sa.Column("id", sa.BigInteger, index=True),
 	sa.Column("name", sa.String(100), index=True),
 
+	sa.Column("registration_date", sa.BigInteger),
 	sa.Column("badges", sa.Text),
 	sa.Column("unlocked_titles", sa.Text),
 	sa.Column("look", sa.Text),

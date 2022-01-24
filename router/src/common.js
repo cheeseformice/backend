@@ -258,6 +258,7 @@ module.exports = {
 		"admin",
 		"mod",
 		"translator",
+		"trainee",
 	],
 
 	SESSION_KEY: SESSION_KEY,

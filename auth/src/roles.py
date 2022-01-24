@@ -14,6 +14,7 @@ role_emojis = {
 	"admin": "<:redfeather:929443930032992256>",
 	"mod": "<:yellowfeather:929444076191879188>",
 	"translator": "<:purplefeather:929444194345447484>",
+	"trainee": "<:lavenderfeather:934812879645982720>",
 }
 
 

@@ -71,7 +71,10 @@ def prepare_cancel_embed(
 @service.on_request("get-sanction")
 async def get_sanction(request):
 	auth = request.auth["cfm_roles"]
-	if not auth or not ("mod" in auth or "admin" in auth or "dev" in auth):
+	roles = (
+		"trainee" in auth or "mod" in auth or "admin" in auth or "dev" in auth
+	)
+	if not auth or not roles:
 		await request.reject("MissingPrivileges")
 		return
 
@@ -116,7 +119,10 @@ async def get_sanction(request):
 @service.on_request("sanction")
 async def sanction(request):
 	auth = request.auth["cfm_roles"]
-	if not auth or not ("mod" in auth or "admin" in auth or "dev" in auth):
+	roles = (
+		"trainee" in auth or "mod" in auth or "admin" in auth or "dev" in auth
+	)
+	if not auth or not roles:
 		await request.reject("MissingPrivileges")
 		return
 
@@ -128,8 +134,11 @@ async def sanction(request):
 		row = await result.first()
 		if row is not None:
 			subj = to_cfm_roles(row.cfm)
-			if "mod" in subj or "admin" in subj or "dev" in subj:
-				# can't sanction a mod, admin or dev
+			if ("trainee" in subj or
+				"mod" in subj or
+				"admin" in subj or
+				"dev" in subj):
+				# can't sanction a trainee, mod, admin or dev
 				await request.reject("MissingPrivileges")
 				return
 
@@ -172,7 +181,10 @@ async def sanction(request):
 @service.on_request("cancel-sanction")
 async def cancel_sanction(request):
 	auth = request.auth["cfm_roles"]
-	if not auth or not ("mod" in auth or "admin" in auth or "dev" in auth):
+	roles = (
+		"trainee" in auth or "mod" in auth or "admin" in auth or "dev" in auth
+	)
+	if not auth or not roles:
 		await request.reject("MissingPrivileges")
 		return
 

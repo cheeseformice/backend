@@ -3,6 +3,7 @@ cfm_roles = (
 	"admin",
 	"mod",
 	"translator",
+	"trainee",
 )
 tfm_roles = (
 	"admin",

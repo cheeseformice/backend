@@ -91,7 +91,7 @@ router.put("/users/:name/roles", (req, res) => {
 
 router.all("/users/:id/sanction", (req, res) => {
 	const auth = assertAuthorization(req, res, {
-		cfm: ["dev", "admin", "mod"]
+		cfm: ["dev", "admin", "mod", "trainee"]
 	});
 	if (!auth) { return; }
 

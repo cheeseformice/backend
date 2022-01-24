@@ -1,3 +1,4 @@
+from datetime import datetime
 from collections import namedtuple
 from shared.roles import to_cfm_roles, to_tfm_roles
 
@@ -49,6 +50,11 @@ def as_gender(gender):
 	elif gender == 2:
 		return "male"
 	return None
+
+
+def as_date(nbr: int):
+	time = datetime.fromtimestamp((nbr or 0) / 1000)
+	return time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 compiled_schemas = {}
@@ -126,6 +132,7 @@ schemas = {
 	"PlayerProfile": {
 		"__inherit": "BasicPlayer",
 
+		"registration": Process(Field("registration_date", 0), as_date),
 		"gender": Process(Field("id_gender", 0), as_gender),
 		"title": Field("title", 0),
 		"titles": Process(Field("unlocked_titles", "0"), as_list),

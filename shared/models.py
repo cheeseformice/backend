@@ -35,6 +35,7 @@ auth = sa.Table(
 	sa.Column("password", sa.String(97)),
 	sa.Column("refresh", sa.Integer, default=0),
 	sa.Column("discord", sa.Integer, index=True),
+	sa.Column("login", sa.DateTime),
 )
 
 player_privacy = sa.Table(

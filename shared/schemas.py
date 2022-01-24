@@ -31,6 +31,10 @@ def as_list(obj):
 	return obj.split(",")
 
 
+def as_int_list(obj):
+	return list(map(int, as_list(obj)))
+
+
 def from_hex(string):
 	if not string:
 		return 0
@@ -134,9 +138,9 @@ schemas = {
 
 		"registration": Process(Field("registration_date", 0), as_date),
 		"gender": Process(Field("id_gender", 0), as_gender),
-		"title": Field("title", 0),
-		"titles": Process(Field("unlocked_titles", "0"), as_list),
-		"badges": Process(Field("badges", ""), as_list),
+		"title": Process(Field("title", 0), int),
+		"titles": Process(Field("unlocked_titles", ""), as_int_list),
+		"badges": Process(Field("badges", ""), as_int_list),
 
 		"tribe": Require("BasicTribe", "tribe_"),
 		"soulmate": Require("BasicPlayer", "sm_"),

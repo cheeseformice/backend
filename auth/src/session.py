@@ -6,7 +6,7 @@ from argon2 import PasswordHasher, exceptions
 
 from shared.roles import to_cfm_roles, to_tfm_roles
 from shared.models import roles, auth, player, bots
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, func
 
 
 ph = PasswordHasher()
@@ -32,6 +32,11 @@ async def new_session(request):
 
 		async with service.db.acquire() as conn:
 			if not token["bot"]:
+				await conn.execute(
+					auth.update()
+					.where(auth.c.id == token["user"])
+					.values(login=func.now())
+				)
 				result = await conn.execute(
 					select(
 						auth.c.id,
@@ -98,6 +103,13 @@ async def new_session(request):
 			)
 			row = await result.first()
 
+			if row is not None:
+				await conn.execute(
+					auth.update()
+					.where(auth.c.id == row.id)
+					.values(login=func.now())
+				)
+
 		if row is None or row.password == "":
 			# User hasn't logged in or didn't set up a password
 			return await request.reject(
@@ -147,6 +159,11 @@ async def new_session(request):
 				)
 
 		async with service.db.acquire() as conn:
+			await conn.execute(
+				auth.update()
+				.where(auth.c.id == user["playerId"])
+				.values(login=func.now())
+			)
 			result = await conn.execute(
 				select(
 					player.c.id,

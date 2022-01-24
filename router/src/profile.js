@@ -86,6 +86,7 @@ router.get("/players/:idOrName", (req, res) => {
 
 	// Prepare what we're gonna send to the service
 	const request = {
+		auth: auth || null,
 		id: null,
 		name: null,
 		period_start: null,

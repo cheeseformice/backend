@@ -4,8 +4,9 @@ import asyncio
 from shared.pyservice import Service
 
 from datetime import datetime, timedelta
+from shared.roles import to_cfm_roles
 from shared.models import roles, player, player_changelog, player_privacy, \
-	stats, tribe, member, tribe_stats, tribe_changelog, disqualified
+	stats, tribe, member, tribe_stats, tribe_changelog, disqualified, auth
 from shared.schemas import as_dict
 from shared.qualification import can_qualify
 
@@ -207,6 +208,7 @@ async def profile_player(request):
 				player,
 				player_privacy,
 
+				auth.c.login,
 				member.c.id_gender,
 
 				roles.c.cfm.label("cfm_roles"),
@@ -226,6 +228,7 @@ async def profile_player(request):
 			)
 			.select_from(
 				player
+				.outerjoin(auth, auth.c.id == player.c.id)
 				.outerjoin(player_privacy, player_privacy.c.id == player.c.id)
 				.outerjoin(roles, roles.c.id == player.c.id)
 				.outerjoin(member, member.c.id_member == player.c.id)
@@ -245,6 +248,15 @@ async def profile_player(request):
 				.format(request.name or request.id)
 			)
 			return
+
+		last_login = None
+		if request.auth is not None:
+			me = request.auth["cfm_roles"]
+			subj = to_cfm_roles(row.cfm_roles)
+
+			if "admin" in me or "dev" in me:
+				if "mod" in subj or "trainee" in subj:
+					last_login = row.login or datetime(2010, 5, 14)
 
 		period = await fetch_period(conn, request, player_changelog, row)
 
@@ -267,6 +279,9 @@ async def profile_player(request):
 
 	if row.outfits is False:  # Ignore None
 		profile["shop"]["outfits"] = []
+
+	if last_login is not None:
+		profile["last_login"] = last_login.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 	await request.send(profile)
 

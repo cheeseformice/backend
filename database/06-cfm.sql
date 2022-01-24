@@ -10,6 +10,7 @@ CREATE TABLE `auth` (
   `password` varchar(97) NOT NULL,
   `refresh` int(11) NOT NULL DEFAULT '0',
   `discord` bigint(20),
+  `login` datetime,
   PRIMARY KEY (`id`),
   KEY `discord` (`discord`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;

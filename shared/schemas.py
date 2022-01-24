@@ -41,10 +41,18 @@ def from_hex(string):
 	return int(string, base=16)
 
 
+def valid_look(look):
+	if not look:
+		return "1;0"
+	elif ";" not in look:
+		return f"1;{look}"
+	return look
+
+
 def outfits(dress_list):
 	if dress_list == "":
 		return []
-	return dress_list.split("/")
+	return list(map(valid_look, dress_list.split("/")))
 
 
 def as_gender(gender):
@@ -75,7 +83,7 @@ schemas = {
 	},
 
 	"Shop": {
-		"look": Field("look", "1;0"),
+		"look": Process(Field("look", "1;0"), valid_look),
 		"outfits": Process(Field("dress_list", ""), outfits),
 		"mouse_color": Process(Field("color1", ""), from_hex),
 		"shaman_color": Process(Field("color2", ""), from_hex),

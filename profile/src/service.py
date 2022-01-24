@@ -252,7 +252,7 @@ async def profile_player(request):
 		last_login = None
 		if request.auth is not None:
 			me = request.auth["cfm_roles"]
-			subj = to_cfm_roles(row.cfm_roles)
+			subj = to_cfm_roles(row.cfm_roles or 0)
 
 			if "admin" in me or "dev" in me:
 				if "mod" in subj or "trainee" in subj:

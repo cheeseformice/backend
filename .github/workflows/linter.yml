@@ -27,4 +27,4 @@ jobs:
 
       - name: Run flake8
         run: |
-          flake8 --count --statistics --ignore W191
+          flake8 --count --statistics --ignore W191,W503

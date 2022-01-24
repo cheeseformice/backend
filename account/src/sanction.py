@@ -71,10 +71,10 @@ def prepare_cancel_embed(
 @service.on_request("get-sanction")
 async def get_sanction(request):
 	auth = request.auth["cfm_roles"]
-	roles = (
+	has_roles = (
 		"trainee" in auth or "mod" in auth or "admin" in auth or "dev" in auth
 	)
-	if not auth or not roles:
+	if not auth or not has_roles:
 		await request.reject("MissingPrivileges")
 		return
 
@@ -119,10 +119,10 @@ async def get_sanction(request):
 @service.on_request("sanction")
 async def sanction(request):
 	auth = request.auth["cfm_roles"]
-	roles = (
+	has_roles = (
 		"trainee" in auth or "mod" in auth or "admin" in auth or "dev" in auth
 	)
-	if not auth or not roles:
+	if not auth or not has_roles:
 		await request.reject("MissingPrivileges")
 		return
 
@@ -181,10 +181,10 @@ async def sanction(request):
 @service.on_request("cancel-sanction")
 async def cancel_sanction(request):
 	auth = request.auth["cfm_roles"]
-	roles = (
+	has_roles = (
 		"trainee" in auth or "mod" in auth or "admin" in auth or "dev" in auth
 	)
-	if not auth or not roles:
+	if not auth or not has_roles:
 		await request.reject("MissingPrivileges")
 		return
 

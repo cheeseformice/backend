@@ -134,10 +134,13 @@ async def sanction(request):
 		row = await result.first()
 		if row is not None:
 			subj = to_cfm_roles(row.cfm)
-			if ("trainee" in subj or
-				"mod" in subj or
-				"admin" in subj or
-				"dev" in subj):
+			subj_privileged = (
+				"trainee" in subj
+				or "mod" in subj
+				or "admin" in subj
+				or "dev" in subj
+			)
+			if subj_privileged:
 				# can't sanction a trainee, mod, admin or dev
 				await request.reject("MissingPrivileges")
 				return

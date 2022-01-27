@@ -11,6 +11,17 @@ PROGRESS = 5  # show progress every 5%
 PROGRESS = 100 // PROGRESS
 
 
+def fetch_columns(columns):
+	result = []
+	for column in columns:
+		if column == "registration_date":
+			# convert registration_date to unix timestamp in millis
+			result.append("unix_timestamp(registration_date)*1000")
+		else:
+			result.append(column)
+	return result
+
+
 class RunnerPool:
 	def __init__(self, pipe, batch, cfm, a801):
 		self.pipe = pipe  # pipe max size
@@ -417,7 +428,7 @@ class RunnerPool:
 					`{3}`"
 				.format(
 					"`,`".join(crc_columns),
-					"`,`".join(table.columns),
+					"`,`".join(fetch_columns(table.columns)),
 					table.composite_scores,
 					table.name
 				)
@@ -460,7 +471,7 @@ class RunnerPool:
 		query = (
 			"SELECT `{}`{} FROM `{}` WHERE `{}` IN ({})"
 			.format(
-				"`,`".join(table.columns),
+				"`,`".join(fetch_columns(table.columns)),
 				table.composite_scores,
 				table.name,
 				table.primary,

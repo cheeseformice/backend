@@ -66,7 +66,7 @@ def as_gender(gender):
 
 def as_date(nbr: int):
 	time = datetime.fromtimestamp((nbr or 0) / 1000)
-	return time.strftime("%Y-%m-%d")
+	return time.strftime("%Y-%m")
 
 
 compiled_schemas = {}

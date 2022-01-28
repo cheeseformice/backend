@@ -16,9 +16,9 @@ def fetch_columns(columns):
 	for column in columns:
 		if column == "registration_date":
 			# convert registration_date to unix timestamp in millis
-			result.append("unix_timestamp(registration_date)*1000")
+			result.append("unix_timestamp(`registration_date`)*1000")
 		else:
-			result.append(column)
+			result.append(f"`{column}`")
 	return result
 
 
@@ -423,12 +423,12 @@ class RunnerPool:
 			))
 			await exte.execute(
 				"SELECT \
-					CRC32(CONCAT_WS('', `{0}`)), `{1}`{2} \
+					CRC32(CONCAT_WS('', `{0}`)), {1}{2} \
 				FROM \
 					`{3}`"
 				.format(
 					"`,`".join(crc_columns),
-					"`,`".join(fetch_columns(table.columns)),
+					",".join(fetch_columns(table.columns)),
 					table.composite_scores,
 					table.name
 				)
@@ -469,9 +469,9 @@ class RunnerPool:
 
 		# Prepare query (it is waaaay faster this way)
 		query = (
-			"SELECT `{}`{} FROM `{}` WHERE `{}` IN ({})"
+			"SELECT {}{} FROM `{}` WHERE `{}` IN ({})"
 			.format(
-				"`,`".join(fetch_columns(table.columns)),
+				",".join(fetch_columns(table.columns)),
 				table.composite_scores,
 				table.name,
 				table.primary,

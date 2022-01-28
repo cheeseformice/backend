@@ -16,7 +16,9 @@ def fetch_columns(columns):
 	for column in columns:
 		if column == "registration_date":
 			# convert registration_date to unix timestamp in millis
-			result.append("unix_timestamp(`registration_date`)*1000")
+			result.append(
+				"(unix_timestamp(`registration_date`)+3600*24)*1000"
+			)
 		else:
 			result.append(f"`{column}`")
 	return result

@@ -11,12 +11,12 @@ def get_color_matrix(color):
 
 def get_color_filter(_id, color):
 	return '<filter id="color_{}" \
-				x="-20%" y="-20%" width="140%" height="140%" \
+				x="-100%" y="-100%" width="300%" height="300%" \
 				filterUnits="objectBoundingBox" \
 				primitiveUnits="userSpaceOnUse" \
 				color-interpolation-filters="sRGB"> \
 				\
 				<feColorMatrix type="matrix" values="{}" \
-					x="0%" y="0%" width="100%" height="100%" \
+					x="-100%" y="-100%" width="300%" height="300%" \
 					in="colormatrix" result="colormatrix1" /> \
 			</filter>'.format(_id, get_color_matrix(color))

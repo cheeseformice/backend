@@ -1,7 +1,7 @@
 FROM redis:latest
 
 RUN apt-get update && \
-	apt-get install -y build-essential libmariadbclient-dev && \
+	apt-get install -y build-essential libmariadb-dev && \
 	apt-get clean
 
 COPY ranking.c /cfm/ranking.c

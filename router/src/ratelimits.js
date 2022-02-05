@@ -3,13 +3,13 @@ const { writeError, service, checkAuthorization } = require("./common");
 const buckets = {
   session: {
     paramType: "ip",
-    maxUses: 5,
-    expires: 5 * 60,
+    maxUses: 15,
+    expires: 1 * 60,
   },
 
   login: {
     paramType: "ip",
-    maxUses: 5,
+    maxUses: 15,
     expires: 1 * 60,
   },
 

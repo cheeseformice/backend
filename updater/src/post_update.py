@@ -44,6 +44,9 @@ async def post_update(player, tribe, member, cfm, a801):
 		async with conn.cursor() as inte:
 			await write_tribe_logs(tribe, tribe_stats, inte)
 
+			for table in ("player", "tribe_stats"):
+				await update_log_pointers(table, inte)
+
 	return await asyncio.wait([
 		write_periodic_rank(tbl, period, days, cfm)
 		for (tbl, period, days) in (
@@ -57,6 +60,51 @@ async def post_update(player, tribe, member, cfm, a801):
 	])
 
 
+async def update_log_pointers(tbl, inte):
+	tribe = 1 if tbl == "tribe_stats" else 0
+	logging.debug("[{}] inserting new log pointers".format(tbl))
+	await inte.execute(
+		"INSERT INTO `last_log` (`tribe`, `id`) \
+		SELECT \
+			{tribe} as `tribe`, \
+			`new`.`id` \
+		FROM \
+			`{table}` as `new` \
+			LEFT JOIN `last_log` as `ptr` \
+				ON `ptr`.`tribe` = {tribe} AND `ptr`.`id` = `new`.`id` \
+		WHERE `ptr`.`id` IS NULL"
+		.format(
+			tribe=tribe,
+			table="player_new" if tbl == "player" else "tribe_active",
+		)
+	)
+
+	for days, period in ((1, "day"), (7, "week"), (30, "month")):
+		logging.debug(
+			"[{}] updating log pointers for a {} ago".format(tbl, period)
+		)
+
+		start = datetime.now() - timedelta(days=days)
+		end = datetime.now() - timedelta(days=days - 1)
+		await inte.execute(
+			"UPDATE \
+				`last_log` as `ptr` \
+				INNER JOIN `{table}` as `log` \
+					ON `log`.`id` = `ptr`.`id` \
+					AND `log`.`log_date` >= '{start}' \
+					AND `log`.`log_date` < '{end}' \
+			SET `{period}` = `log`.`log_id` \
+			WHERE `ptr`.`tribe` = {tribe}"
+			.format(
+				tribe=tribe,
+				start=start.strftime("%Y-%m-%d"),
+				end=end.strftime("%Y-%m-%d"),
+				period=period,
+				table=f"{tbl}_changelog"
+			)
+		)
+
+
 async def write_periodic_rank(tbl, period, days, pool):
 	async with pool.acquire() as conn:
 		async with conn.cursor() as cursor:
@@ -65,19 +113,17 @@ async def write_periodic_rank(tbl, period, days, pool):
 
 async def _write_periodic_rank(tbl, period, days, inte):
 	if tbl.is_empty:
+		# No historic data to use
 		return
 
-	start_from = datetime.now() - timedelta(days=days - 1)
-	start_from = start_from.replace(hour=0, minute=0, second=0)
+	start = datetime.now() - timedelta(days=days - 1)
 
 	if tbl.name == "tribe_stats":
 		format_name = "tribe@{}".format(period)
 		target = "tribe_{}".format(period)
-		source = tbl.name
 	else:
 		format_name = "{}@{}".format(tbl.name, period)
 		target = "{}_{}".format(tbl.name, period)
-		source = "{}_new".format(tbl.name)
 
 	columns = "`,`".join(stat_columns)
 	calculations = ",".join([
@@ -92,33 +138,47 @@ async def _write_periodic_rank(tbl, period, days, inte):
 		for column, formula in formulas.items()
 	])
 
-	truncate = "TRUNCATE `{}`".format(target)
-	calculate_period = (
+	if period == "daily":
+		period_unit = "day"
+	elif period == "weekly":
+		period_unit = "week"
+	elif period == "monthly":
+		period_unit = "month"
+
+	await inte.execute(f"TRUNCATE `{target}`")
+	logging.debug("[{}] calculating periods".format(format_name))
+	await inte.execute(
 		"INSERT INTO \
 			`{target}` (`id`, `{columns}`) \
 		SELECT \
 			`n`.`id`, \
 			{calculations} \
 		FROM \
-			`{source}` as `n` \
-			INNER JOIN ( \
-				SELECT max(`log_id`) as `boundary`, `id` \
+			( \
+				SELECT `id` \
 				FROM `{log}` \
-				WHERE `log_date` < {start_from} \
+				WHERE `log_date` >= '{start}' \
 				GROUP BY `id` \
-			) as `b` ON `b`.`id` = `n`.`id` \
+			) as `n` \
+			INNER JOIN `last_log` as `ptr` \
+				ON `ptr`.`tribe` = {tribe} \
+				AND `ptr`.`id` = `n`.`id` \
 			INNER JOIN `{log}` as `o` \
-				ON `o`.`id` = `n`.`id` AND `b`.`boundary` = `o`.`log_id`"
+				ON `o`.`id` = `n`.`id` \
+				AND `ptr`.`{period}` = `o`.`log_id`"
 		.format(
 			target=target,
 			columns=columns,
 			calculations=calculations,
-			source=source,
 			log=log,
-			start_from=start_from.strftime("%Y%m%d"),
+			tribe=1 if tbl.name == "tribe_stats" else 0,
+			start=start.strftime("%Y-%m-%d"),
+			period=period_unit,
 		)
 	)
-	scores = (
+
+	logging.debug("[{}] calculating scores".format(format_name))
+	await inte.execute(
 		"UPDATE `{target}` \
 		SET {formulas}"
 		.format(
@@ -126,7 +186,9 @@ async def _write_periodic_rank(tbl, period, days, inte):
 			formulas=score_formulas,
 		)
 	)
-	overall_score = (
+
+	logging.debug("[{}] calculating overall score".format(format_name))
+	await inte.execute(
 		"UPDATE `{target}` \
 		SET \
 			`score_overall` = {formula}"
@@ -136,13 +198,6 @@ async def _write_periodic_rank(tbl, period, days, inte):
 		)
 	)
 
-	logging.debug("[{}] calculating periods".format(format_name))
-	await inte.execute(truncate)
-	await inte.execute(calculate_period)
-	logging.debug("[{}] calculating scores".format(format_name))
-	await inte.execute(scores)
-	logging.debug("[{}] calculating overall score".format(format_name))
-	await inte.execute(overall_score)
 	logging.debug("[{}] done".format(format_name))
 
 

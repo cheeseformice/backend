@@ -46,3 +46,12 @@ ALTER TABLE `member_changelog`
   ADD PRIMARY KEY (`log_id`),
   ADD KEY (`log_date`),
   ADD KEY (`id_member`);
+
+CREATE TABLE `last_log` (
+  `tribe` NOT NULL,
+  `id` bigint(20) NOT NULL,
+  `day` int(11),
+  `week` int(11),
+  `month` int(11),
+  PRIMARY KEY (`tribe`, `id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;

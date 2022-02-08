@@ -101,6 +101,9 @@ def null_stats(is_tribe):
 
 
 async def fetch_period(conn, request, table, row, force_public=False):
+	if not service.is_alive("changelogs"):
+		return None
+
 	period = None
 	if row is not None and (request.period_start or request.period_end):
 		period_start = None

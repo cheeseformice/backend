@@ -101,21 +101,20 @@ def null_stats(is_tribe):
 
 
 async def fetch_period(conn, request, table, row, force_public=False):
-	if not service.is_alive("changelogs"):
-		return None
-
 	period = None
 	if row is not None and (request.period_start or request.period_end):
+		changelogs = service.is_alive("changelogs")
+
 		period_start = None
 		start, end = None, None
 
-		if request.period_start is not None:
+		if request.period_start is not None and changelogs:
 			date = parse_date(request.period_start)
 			start = await fetch_boundary_log(
 				row.id, conn, table, table.c.log_date <= date
 			)
 
-		if request.period_end is not None:
+		if request.period_end is not None and changelogs:
 			date = parse_date(request.period_end)
 			end = await fetch_boundary_log(
 				row.id, conn, table, table.c.log_date <= date
@@ -130,7 +129,10 @@ async def fetch_period(conn, request, table, row, force_public=False):
 				end = {}
 
 		is_tribe = table == tribe_changelog
-		if start is not None:
+		if not changelogs:
+			profile_stats = null_stats(is_tribe)
+
+		elif start is not None:
 			profile_stats = calculate_difference(is_tribe, end, start)
 
 		elif request.period_start is None or not request.use_recent:

@@ -139,6 +139,16 @@ class Service:
 			# The event returned a task, schedule it
 			return self.loop.create_task(coro)
 
+	def is_alive(self, target):
+		if time.time() >= self.ping_valid_until:
+			# ping is invalid
+			# either we or the router is disconnected
+			# can't know if the target is alive
+			return False
+
+		worker = self.select_worker(target)
+		return f"{target}@{worker}" in self.pings
+
 	def select_worker(self, target):
 		"""Uses round robin to select a worker of the given target."""
 		workers = self.other_workers.get(target)
@@ -146,10 +156,7 @@ class Service:
 			# Target isn't connected (or not yet discovered)
 			return 0
 
-		if target not in self.used_workers:
-			index = self.used_workers[target]
-		else:
-			index = -1
+		index = self.used_workers.get(target, -1)
 
 		length = len(workers)
 		ping_valid = time.time() < self.ping_valid_until

@@ -58,7 +58,7 @@ function lookup(what) {
 	// Lookup several players or tribes
 	return (req, res) => {
 		const { offset, limit } = getPagination(req);
-		const { search, order } = req.query;
+		const { search, order, tfm, cfm, operator } = req.query;
 		var { last } = req.query;
 
 		if (!!last && !isNaN(last)) {
@@ -76,11 +76,20 @@ function lookup(what) {
 
 		const hasSearch = !!search;
 		const hasOrder = !!order;
-		if (hasSearch === hasOrder) {
-			// If none of the queries is in the request, or both are...
+		const hasRoles = !!tfm || !!cfm;
+		if (hasRoles && what === "tribe") {
 			return writeError(
 				res, 400,
-				"This endpoint requires either search or order query parameters (not both!)"
+				"This endpoint does not allow to filter by roles."
+			);
+		}
+
+		if (hasSearch + hasOrder + hasRoles !== 1) {
+			// for some reason javascript allows us to sum booleans
+			// and we exclusively only need one filter
+			return writeError(
+				res, 400,
+				"This endpoint requires only one filter (search, order, tfm/cfm)"
 			);
 		}
 
@@ -98,16 +107,42 @@ function lookup(what) {
 			}
 		}
 
+		let request;
+		if (!hasRoles) {
+			request = {
+				search: search || null,
+				offset: offset,
+				order: order || null,
+				limit: limit,
+				tribe: null,
+				period: period,
+			};
+		} else {
+			if (typeof tfm === "string" && tfm !== "all") {
+				tfm = [tfm];
+			}
+			if (typeof cfm === "string" && cfm !== "all") {
+				cfm = [cfm];
+			}
+
+			let op;
+			if (!operator) {
+				op = "or";
+			} else if (!["or", "and"].includes(operator)) {
+				return writeError(res, 400, "Invalid operator");
+			}
+
+			what = "roles";
+			request = {
+				tfm: tfm || [],
+				cfm: cfm || [],
+				operator: op,
+			};
+		}
+
 		// Send the request to the lookup service and send whatever it replies
 		// to the user
-		service.request("lookup", what, {
-			search: search || null,
-			offset: offset,
-			order: order || null,
-			limit: limit,
-			tribe: null,
-			period: period,
-		}, handleBasicServiceResult(res));
+		service.request("lookup", what, request, handleBasicServiceResult(res));
 	};
 }
 router.get("/players", lookup("player"));

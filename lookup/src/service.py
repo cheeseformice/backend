@@ -5,14 +5,16 @@ from dataclasses import dataclass
 from typing import Tuple
 
 from shared.pyservice import Service
-from shared.roles import to_cfm_roles, to_tfm_roles
+from shared.schemas import as_dict_list
+from shared.roles import to_cfm_roles, to_tfm_roles, from_cfm_roles, \
+	from_tfm_roles
 from shared.models import roles, player, tribe, tribe_stats, member, periods, \
 	disqualified
 from shared.qualification import player_qualification_query, \
 	tribe_qualification_query
 
 from aiomysql.sa import create_engine
-from sqlalchemy import and_, desc, func
+from sqlalchemy import and_, or_, desc, func
 from sqlalchemy.sql import select
 
 
@@ -527,6 +529,73 @@ async def get_position(request):
 		"position": max(1, count.count + approximate),
 		"accurate": approximate <= 10000,
 		"outdated": outdated == 1,
+	})
+
+
+@service.on_request("roles")
+async def lookup_by_roles(request):
+	offset, limit = request.offset, request.limit
+
+	if request.tfm == request.cfm == "all":
+		condition = or_(roles.c.tfm > 0, roles.c.cfm > 0)
+	elif request.tfm == "all":
+		condition = roles.c.tfm > 0
+	elif request.cfm == "all":
+		condition = roles.c.cfm > 0
+	else:
+		condition = []
+		try:
+			tfm = from_tfm_roles(request.tfm)
+			cfm = from_cfm_roles(request.cfm)
+		except ValueError:
+			return await request.reject(
+				"BadRequest",
+				"One or more roles are invalid."
+			)
+
+		if tfm > 0:
+			condition.append((tfm, roles.c.tfm.op("&")(tfm)))
+		if cfm > 0:
+			condition.append((cfm, roles.c.cfm.op("&")(cfm)))
+
+		if request.op == "or":
+			condition = or_(*(
+				clause > 0  # any of the roles match
+				for _, clause in condition
+			))
+		elif request.op == "and":
+			condition = and_(*(
+				clause == inp  # all of the roles match
+				for inp, clause in condition
+			))
+
+	async with service.db.acquire() as conn:
+		result = await conn.execute(
+			select(
+				roles.c.id,
+				player.c.name,
+				roles.c.cfm.label("cfm_roles"),
+				roles.c.tfm.label("tfm_roles"),
+			)
+			.select_from(
+				roles
+				.join(player, player.c.id == roles.c.id)
+			)
+			.where(condition)
+			.offset(offset).limit(limit)
+		)
+		rows = await result.fetchall()
+
+		result = await conn.execute(
+			select(func.count().label("total"))
+			.select_from(roles)
+			.where(condition)
+		)
+		total = await result.first()
+
+	await request.send({
+		"total": total.total,
+		"page": as_dict_list("BasicPlayer", rows)
 	})
 
 

@@ -19,14 +19,16 @@ tfm_roles = (
 )
 
 
-def from_cfm_roles(roles):
-	bits = 0
-	for role in roles:
-		bits |= 2 ** cfm_roles.index(role)
-	return bits
+def from_role_factory(enum):
+	def from_roles(roles):
+		bits = 0
+		for role in roles:
+			bits |= 2 ** enum.index(role)
+		return bits
+	return from_roles
 
 
-def to_role_factory(*enum):
+def to_role_factory(enum):
 	def to_roles(bits):
 		if bits == 0:
 			return []
@@ -37,9 +39,10 @@ def to_role_factory(*enum):
 				roles.append(role)
 
 		return roles
-
 	return to_roles
 
 
-to_cfm_roles = to_role_factory(*cfm_roles)
-to_tfm_roles = to_role_factory(*tfm_roles)
+from_cfm_roles = from_role_factory(cfm_roles)
+from_tfm_roles = from_role_factory(tfm_roles)
+to_cfm_roles = to_role_factory(cfm_roles)
+to_tfm_roles = to_role_factory(tfm_roles)

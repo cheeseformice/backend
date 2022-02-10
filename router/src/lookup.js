@@ -107,8 +107,10 @@ function lookup(what) {
 			}
 		}
 
+		let requestName;
 		let request;
 		if (!hasRoles) {
+			requestName = what;
 			request = {
 				search: search || null,
 				offset: offset,
@@ -125,24 +127,26 @@ function lookup(what) {
 				cfm = [cfm];
 			}
 
-			let op;
+			let op = operator;
 			if (!operator) {
 				op = "or";
 			} else if (!["or", "and"].includes(operator)) {
 				return writeError(res, 400, "Invalid operator");
 			}
 
-			what = "roles";
+			requestName = "roles";
 			request = {
 				tfm: tfm || [],
 				cfm: cfm || [],
-				operator: op,
+				op,
+				offset,
+				limit,
 			};
 		}
 
 		// Send the request to the lookup service and send whatever it replies
 		// to the user
-		service.request("lookup", what, request, handleBasicServiceResult(res));
+		service.request("lookup", requestName, request, handleBasicServiceResult(res));
 	};
 }
 router.get("/players", lookup("player"));

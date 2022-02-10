@@ -58,8 +58,8 @@ function lookup(what) {
 	// Lookup several players or tribes
 	return (req, res) => {
 		const { offset, limit } = getPagination(req);
-		const { search, order, tfm, cfm, operator } = req.query;
-		var { last } = req.query;
+		const { search, order } = req.query;
+		var { last, tfm, cfm, operator } = req.query;
 
 		if (!!last && !isNaN(last)) {
 			last = parseInt(last);

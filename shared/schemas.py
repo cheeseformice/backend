@@ -148,7 +148,7 @@ schemas = {
 		"gender": Process(Field("id_gender", 0), as_gender),
 		"title": Process(Field("title", 0), int),
 		"titles": Process(Field("unlocked_titles", ""), as_int_list),
-		"badges": Process(Field("badges", ""), as_int_list),
+		"badges": Process(Field("badges", ""), as_list),
 
 		"tribe": Require("BasicTribe", "tribe_"),
 		"soulmate": Require("BasicPlayer", "sm_"),

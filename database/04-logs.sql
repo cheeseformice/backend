@@ -54,5 +54,6 @@ CREATE TABLE `last_log` (
   `day` int(11),
   `week` int(11),
   `month` int(11),
-  PRIMARY KEY (`tribe`, `id`)
+  PRIMARY KEY (`tribe`, `id`),
+  KEY `latest` (`latest`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;

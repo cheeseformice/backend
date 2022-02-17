@@ -83,7 +83,7 @@ async def update_log_pointers(tbl, inte):
 		(0, "latest"),
 		(1, "day"),
 		(7, "week"),
-		(30, "month")
+		(30, "month"),
 	):
 		logging.debug(
 			"[{}] updating log pointers for a {} ago".format(tbl, period)
@@ -121,8 +121,6 @@ async def _write_periodic_rank(tbl, period, days, inte):
 		# No historic data to use
 		return
 
-	start = datetime.now() - timedelta(days=days - 1)
-
 	if tbl.name == "tribe_stats":
 		format_name = "tribe@{}".format(period)
 		target = "tribe_{}".format(period)
@@ -150,37 +148,45 @@ async def _write_periodic_rank(tbl, period, days, inte):
 	elif period == "monthly":
 		period_unit = "month"
 
+	logging.debug("[{}] fetching start point".format(format_name))
+	start = datetime.now() - timedelta(days=days - 1)
+	await inte.execute(
+		"SELECT MIN(`log_id`) \
+		FROM `{log}` \
+		WHERE `log_date` >= '{start}' \
+		LIMIT 1"
+		.format(
+			log=log,
+			start=start.strftime("%Y-%m-%d"),
+		)
+	)
+	row = await inte.fetchone()
+	await inte.fetchone()
+
 	await inte.execute(f"TRUNCATE `{target}`")
 	logging.debug("[{}] calculating periods".format(format_name))
 	await inte.execute(
 		"INSERT INTO \
 			`{target}` (`id`, `{columns}`) \
 		SELECT \
-			`n`.`id`, \
+			`ptr`.`id`, \
 			{calculations} \
 		FROM \
-			( \
-				SELECT `id` \
-				FROM `{log}` \
-				WHERE `log_date` >= '{start}' \
-				GROUP BY `id` \
-			) as `n` \
-			INNER JOIN `last_log` as `ptr` \
-				ON `ptr`.`tribe` = {tribe} \
-				AND `ptr`.`id` = `n`.`id` \
+			`last_log` as `ptr` \
 			INNER JOIN `{log}` as `o` \
-				ON `o`.`id` = `n`.`id` \
-				AND `ptr`.`{period}` = `o`.`log_id` \
+				ON `ptr`.`{period}` = `o`.`log_id` \
 			INNER JOIN `{log}` as `c` \
-				ON `c`.`id` = `n`.`id` \
-				AND `ptr`.`latest` = `c`.`log_id`"
+				ON `ptr`.`latest` = `c`.`log_id` \
+		WHERE \
+			`ptr`.`tribe` = {tribe} \
+			AND `ptr`.`latest` >= {start}"
 		.format(
 			target=target,
 			columns=columns,
 			calculations=calculations,
 			log=log,
 			tribe=1 if tbl.name == "tribe_stats" else 0,
-			start=start.strftime("%Y-%m-%d"),
+			start=row[0],
 			period=period_unit,
 		)
 	)

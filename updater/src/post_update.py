@@ -127,7 +127,7 @@ async def _write_periodic_rank(tbl, period, days, inte):
 
 	columns = "`,`".join(stat_columns)
 	calculations = ",".join([
-		"`n`.`{0}` - `o`.`{0}`"
+		"`c`.`{0}` - `o`.`{0}`"
 		.format(column)
 		for column in stat_columns
 	])
@@ -155,7 +155,7 @@ async def _write_periodic_rank(tbl, period, days, inte):
 			{calculations} \
 		FROM \
 			( \
-				SELECT `id` \
+				SELECT MAX(`log_id`) as `log_id`, `id` \
 				FROM `{log}` \
 				WHERE `log_date` >= '{start}' \
 				GROUP BY `id` \
@@ -165,7 +165,10 @@ async def _write_periodic_rank(tbl, period, days, inte):
 				AND `ptr`.`id` = `n`.`id` \
 			INNER JOIN `{log}` as `o` \
 				ON `o`.`id` = `n`.`id` \
-				AND `ptr`.`{period}` = `o`.`log_id`"
+				AND `ptr`.`{period}` = `o`.`log_id` \
+			INNER JOIN `{log}` as `c` \
+				ON `c`.`id` = `n`.`id` \
+				AND `c`.`log_id` = `n`.`log_id`"
 		.format(
 			target=target,
 			columns=columns,

@@ -79,7 +79,12 @@ async def update_log_pointers(tbl, inte):
 		)
 	)
 
-	for days, period in ((1, "day"), (7, "week"), (30, "month")):
+	for days, period in (
+		(0, "latest"),
+		(1, "day"),
+		(7, "week"),
+		(30, "month")
+	):
 		logging.debug(
 			"[{}] updating log pointers for a {} ago".format(tbl, period)
 		)
@@ -155,7 +160,7 @@ async def _write_periodic_rank(tbl, period, days, inte):
 			{calculations} \
 		FROM \
 			( \
-				SELECT MAX(`log_id`) as `log_id`, `id` \
+				SELECT `id` \
 				FROM `{log}` \
 				WHERE `log_date` >= '{start}' \
 				GROUP BY `id` \
@@ -168,7 +173,7 @@ async def _write_periodic_rank(tbl, period, days, inte):
 				AND `ptr`.`{period}` = `o`.`log_id` \
 			INNER JOIN `{log}` as `c` \
 				ON `c`.`id` = `n`.`id` \
-				AND `c`.`log_id` = `n`.`log_id`"
+				AND `ptr`.`latest` = `n`.`log_id`"
 		.format(
 			target=target,
 			columns=columns,

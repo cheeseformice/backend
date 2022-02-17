@@ -50,6 +50,7 @@ ALTER TABLE `member_changelog`
 CREATE TABLE `last_log` (
   `tribe` boolean NOT NULL,
   `id` bigint(20) NOT NULL,
+  `latest` int(11),
   `day` int(11),
   `week` int(11),
   `month` int(11),

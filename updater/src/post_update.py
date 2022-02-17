@@ -173,7 +173,7 @@ async def _write_periodic_rank(tbl, period, days, inte):
 				AND `ptr`.`{period}` = `o`.`log_id` \
 			INNER JOIN `{log}` as `c` \
 				ON `c`.`id` = `n`.`id` \
-				AND `ptr`.`latest` = `n`.`log_id`"
+				AND `ptr`.`latest` = `c`.`log_id`"
 		.format(
 			target=target,
 			columns=columns,

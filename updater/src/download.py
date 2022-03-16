@@ -177,8 +177,8 @@ class RunnerPool:
 					{1} \
 				FROM \
 					`{2}` \
-				ORDER BY `{0}` ASC \
-				WHERE `{0}` >= {3} AND `{0}` < {4}"
+				WHERE `{0}` >= {3} AND `{0}` < {4} \
+				ORDER BY `{0}` ASC"
 				.format(
 					table.primary,
 					select,

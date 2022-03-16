@@ -329,7 +329,56 @@ class RunnerPool:
 						# we mark it as read by this one
 						internal_hashes[_id] = new_hash
 
+				# While there are excess of rows in the batch
+				while needed < 0:
+					# send a proper batch
+					await out.put(new_batch[:needed])
+					# and prepare the next one (even if it has an excess)
+					new_batch = new_batch[needed:]
+					needed += self.batch
+
+				if needed == 0:
+					# No more needed rows for this batch, just send it
+					await out.put(new_batch)
+					# and prepare the next one
+					new_batch, needed = [], self.batch
+
 				batch = await inp.get()
+
+		# Finish transferring new data
+		if get_external in tasks:
+			# This chunk is not executed if get_internal was in tasks
+			batch = await get_external
+			while batch:
+				for (_id, new_hash) in batch:
+					if _id in internal_hashes:
+						old_hash = internal_hashes[_id]
+						del internal_hashes[_id]
+
+						if new_hash == old_hash:
+							continue
+
+					new_batch.append((
+						_id,
+						new_hash
+					))
+					needed -= 1
+
+				# While there are excess of rows in the batch
+				while needed < 0:
+					# send a proper batch
+					await out.put(new_batch[:needed])
+					# and prepare the next one (even if it has an excess)
+					new_batch = new_batch[needed:]
+					needed += self.batch
+
+				if needed == 0:
+					# No more needed rows for this batch, just send it
+					await out.put(new_batch)
+					# and prepare the next one
+					new_batch, needed = [], self.batch
+
+				batch = await inp2.get()
 
 		logging.debug(
 			"[{}] internal batches done, {}-{} unpaired hashes"
@@ -350,14 +399,7 @@ class RunnerPool:
 		if needed == 0:
 			# No more needed rows for this batch, just send it
 			await out.put(new_batch)
-
-		# Finish transferring new data
-		if get_external in tasks:
-			# This chunk is not executed if get_internal was in tasks
-			batch = await get_external
-			while batch:
-				await out.put(batch)
-				batch = await inp2.get()
+			needed += self.batch
 
 		if needed < self.batch:
 			# Batch has items, but not the required amount

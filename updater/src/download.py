@@ -171,11 +171,10 @@ class RunnerPool:
 
 		await exte.execute(
 			"SELECT \
-				{1} \
+				{} \
 			FROM \
-				`{2}`"
+				`{}`"
 			.format(
-				table.primary,
 				select,
 				table.name,
 			)

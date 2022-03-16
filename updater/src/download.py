@@ -45,13 +45,14 @@ class RunnerPool:
 			# If the table is empty, we have no hashes to compare
 			pipes = [
 				asyncio.Queue(maxsize=self.pipe)
-				for p in range(2)
+				for p in range(3)
 			]
 
 			done, pending = await asyncio.wait((
-				self.fetch_loop(table, inp=None, out=pipes[0], out2=pipes[1]),
-				self.update_loop(table, inp=pipes[0], out=None),
-				self.hash_loop(table, inp=pipes[1], out=None),
+				self.grab_loop(table, inp=None, out=pipes[0], grab_all=True),
+				self.fetch_loop(table, inp=pipes[0], out=pipes[1], out2=pipes[2]),
+				self.update_loop(table, inp=pipes[1], out=None),
+				self.hash_loop(table, inp=pipes[2], out=None),
 			), return_when=asyncio.FIRST_EXCEPTION)
 
 		else:
@@ -62,17 +63,18 @@ class RunnerPool:
 			# If the table isn't empty, we assume we do have hashes
 			pipes = [
 				asyncio.Queue(maxsize=self.pipe)
-				for p in range(4)
+				for p in range(5)
 			]
 
 			# And so, we use a more complex but faster algorithm
 			# to fetch data
 			done, pending = await asyncio.wait((
 				self.load_loop(table, inp=None, out=pipes[0]),
-				self.filter_loop(table, inp=pipes[0], out=pipes[1]),
-				self.fetch_loop(table, inp=pipes[1], out=pipes[2], out2=pipes[3]),
-				self.update_loop(table, inp=pipes[2], out=None),
-				self.hash_loop(table, inp=pipes[3], out=None),
+				self.grab_loop(table, inp=None, out=pipes[1], grab_all=False),
+				self.filter_loop(table, inp=pipes[0], inp2=pipes[1], out=pipes[2]),
+				self.fetch_loop(table, inp=pipes[2], out=pipes[3], out2=pipes[4]),
+				self.update_loop(table, inp=pipes[3], out=None),
+				self.hash_loop(table, inp=pipes[4], out=None),
 			), return_when=asyncio.FIRST_EXCEPTION)
 
 		if pending:
@@ -130,10 +132,10 @@ class RunnerPool:
 		logging.debug("[{}] load loop done".format(table.name))
 
 	@with_cursors("external")
-	async def filter_loop(self, exte, table, *, inp, out):
-		assert inp is not None and out is not None
+	async def grab_loop(self, exte, table, *, inp, out, grab_all):
+		assert inp is None and out is not None
 
-		logging.debug("[{}] start filter loop".format(table.name))
+		logging.debug("[{}] start grab loop".format(table.name))
 
 		await exte.execute(
 			"SELECT COUNT(*) FROM `{}`"
@@ -146,24 +148,73 @@ class RunnerPool:
 		progress = max(1, round(row[0] / PROGRESS / self.batch))
 		count, total = 0, math.ceil(row[0] / self.batch)
 
-		# Send query to the database
 		crc_columns = list(filter(
 			lambda col: col != "registration_date",
 			table.columns
 		))
-		await exte.execute(
-			"SELECT \
-				`{}`, CRC32(CONCAT_WS('', `{}`)) \
-			FROM \
-				`{}`"
-			.format(
+
+		# At least 500k rows per "page" and at most 1.5mil
+		page_length = min(1_500_000, max(500_000, math.ceil(row[0] / 100)))
+		page, total_pages = 0, math.ceil(row[0] / page_length)
+		start, end = 1, page_length
+
+		if grab_all:
+			select = "CRC32(CONCAT_WS('', `{0}`)), {1}{2}".format(
+				"`,`".join(crc_columns),
+				",".join(fetch_columns(table.columns)),
+				table.composite_scores,
+			)
+		else:
+			select = "`{0}`, CRC32(CONCAT_WS('', `{1}`))".format(
 				table.primary,
 				"`,`".join(crc_columns),
-				table.name
 			)
-		)
 
-		logging.debug("[{}] start fetching ext hashes".format(table.name))
+		while page < total_pages:
+			page += 1
+			await exte.execute(
+				"SELECT \
+					{1} \
+				FROM \
+					`{2}` \
+				ORDER BY `{0}` ASC \
+				WHERE `{0}` >= {3} AND `{0}` < {4}"
+				.format(
+					table.primary,
+					select,
+					table.name,
+					start,
+					end,
+				)
+			)
+			start = end
+			end += page_length
+
+			while True:
+				batch = await exte.fetchmany(self.batch)
+				if not batch:
+					break
+
+				await out.put(batch)
+
+				count += 1  # DEBUG !
+				if count % progress == 0:
+					logging.info(
+						"[{}] {}/{} batches processed ({}%)"
+						.format(
+							table.name,
+							count, total,
+							round(count / total * 100)
+						)
+					)
+
+		await out.put(None)
+		logging.debug("[{}] grab loop done".format(table.name))
+
+	async def filter_loop(self, table, *, inp, inp2, out):
+		assert inp is not None and inp2 is not None and out is not None
+
+		logging.debug("[{}] start filter loop".format(table.name))
 
 		new_batch, needed = [], self.batch
 
@@ -171,7 +222,7 @@ class RunnerPool:
 		external_hashes = {}
 
 		get_internal = asyncio.create_task(inp.get())
-		get_external = asyncio.create_task(exte.fetchmany(self.batch))
+		get_external = asyncio.create_task(inp2.get())
 		tasks = {get_internal, get_external}
 
 		while True:
@@ -194,20 +245,9 @@ class RunnerPool:
 						get_internal = task = asyncio.create_task(coro)
 						read, write = external_hashes, internal_hashes
 					else:
-						coro = exte.fetchmany(self.batch)
+						coro = inp2.get()
 						get_external = task = asyncio.create_task(coro)
 						read, write = internal_hashes, external_hashes
-
-						count += 1  # DEBUG!
-						if count % progress == 0:
-							logging.info(
-								"[{}] {}/{} batches processed ({}%)"
-								.format(
-									table.name,
-									count, total,
-									round(count / total * 100)
-								)
-							)
 
 					for row in batch:
 						_id, new_hash = row[0], row[1]
@@ -315,27 +355,9 @@ class RunnerPool:
 		if get_external in tasks:
 			# This chunk is not executed if get_internal was in tasks
 			batch = await get_external
-
-			if batch:
+			while batch:
 				await out.put(batch)
-
-				while True:
-					batch = await exte.fetchmany(self.batch)
-					if not batch:
-						break
-
-					count += 1  # DEBUG!
-					if count % progress == 0:
-						logging.info(
-							"[{}] {}/{} batches processed ({}%)"
-							.format(
-								table.name,
-								count, total,
-								round(count / total * 100)
-							)
-						)
-
-					await out.put(batch)
+				batch = await inp2.get()
 
 		if needed < self.batch:
 			# Batch has items, but not the required amount
@@ -398,58 +420,17 @@ class RunnerPool:
 		logging.debug("[{}] done delete".format(table.name))
 
 	@with_cursors("external")
-	async def fetch_loop(self, exte, table, *, inp, out, out2):
-		assert out is not None
+	async def fetch_loop(self, exte, table, *, inp, out, out2, grab_all):
+		assert inp is not None and out is not None
 
 		logging.debug("[{}] start fetch loop".format(table.name))
 
 		primary_idx = table.columns.index(table.primary)
 
-		if inp is None:
+		if grab_all:
 			# There is nothing to compare, so just fetch and update
-			await exte.execute(
-				"SELECT COUNT(*) FROM `{}`"
-				.format(table.name)
-			)
-			row = await exte.fetchone()
-			await exte.fetchone()
-
-			logging.info("[{}] total rows: {}".format(table.name, row[0]))
-			progress = max(1, round(row[0] / PROGRESS / self.batch))
-			count, total = 0, math.ceil(row[0] / self.batch)
-
-			# Send query to the database
-			crc_columns = list(filter(
-				lambda col: col != "registration_date",
-				table.columns
-			))
-			await exte.execute(
-				"SELECT \
-					CRC32(CONCAT_WS('', `{0}`)), {1}{2} \
-				FROM \
-					`{3}`"
-				.format(
-					"`,`".join(crc_columns),
-					",".join(fetch_columns(table.columns)),
-					table.composite_scores,
-					table.name
-				)
-			)
-
 			while True:
-				count += 1  # DEBUG!
-				if count % progress == 0:
-					logging.info(
-						"[{}] {}/{} batches processed ({}%)"
-						.format(
-							table.name,
-							count, total,
-							round(count / total * 100)
-						)
-					)
-
-				# And fetch in small groups so we don't spam anything
-				batch = await exte.fetchmany(self.batch)
+				batch = await inp.get()
 				if not batch:
 					await out2.put(None)
 					await out.put(None)

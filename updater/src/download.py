@@ -50,7 +50,9 @@ class RunnerPool:
 
 			done, pending = await asyncio.wait((
 				self.grab_loop(table, inp=None, out=pipes[0], grab_all=True),
-				self.fetch_loop(table, inp=pipes[0], out=pipes[1], out2=pipes[2], grab_all=True),
+				self.fetch_loop(
+					table, inp=pipes[0], out=pipes[1], out2=pipes[2], grab_all=True
+				),
 				self.update_loop(table, inp=pipes[1], out=None),
 				self.hash_loop(table, inp=pipes[2], out=None),
 			), return_when=asyncio.FIRST_EXCEPTION)
@@ -72,7 +74,9 @@ class RunnerPool:
 				self.load_loop(table, inp=None, out=pipes[0]),
 				self.grab_loop(table, inp=None, out=pipes[1], grab_all=False),
 				self.filter_loop(table, inp=pipes[0], inp2=pipes[1], out=pipes[2]),
-				self.fetch_loop(table, inp=pipes[2], out=pipes[3], out2=pipes[4], grab_all=False),
+				self.fetch_loop(
+					table, inp=pipes[2], out=pipes[3], out2=pipes[4], grab_all=False
+				),
 				self.update_loop(table, inp=pipes[3], out=None),
 				self.hash_loop(table, inp=pipes[4], out=None),
 			), return_when=asyncio.FIRST_EXCEPTION)
@@ -153,11 +157,6 @@ class RunnerPool:
 			table.columns
 		))
 
-		# At least 500k rows per "page" and at most 1.5mil
-		page_length = min(1_500_000, max(500_000, math.ceil(row[0] / 100)))
-		page, total_pages = 0, math.ceil(row[0] / page_length)
-		start, end = 1, page_length
-
 		if grab_all:
 			select = "CRC32(CONCAT_WS('', `{0}`)), {1}{2}".format(
 				"`,`".join(crc_columns),
@@ -170,43 +169,35 @@ class RunnerPool:
 				"`,`".join(crc_columns),
 			)
 
-		while page < total_pages:
-			page += 1
-			await exte.execute(
-				"SELECT \
-					{1} \
-				FROM \
-					`{2}` \
-				WHERE `{0}` >= {3} AND `{0}` < {4} \
-				ORDER BY `{0}` ASC"
-				.format(
-					table.primary,
-					select,
-					table.name,
-					start,
-					end,
-				)
+		await exte.execute(
+			"SELECT \
+				{1} \
+			FROM \
+				`{2}`"
+			.format(
+				table.primary,
+				select,
+				table.name,
 			)
-			start = end
-			end += page_length
+		)
 
-			while True:
-				batch = await exte.fetchmany(self.batch)
-				if not batch:
-					break
+		while True:
+			batch = await exte.fetchmany(self.batch)
+			if not batch:
+				break
 
-				await out.put(batch)
+			await out.put(batch)
 
-				count += 1  # DEBUG !
-				if count % progress == 0:
-					logging.info(
-						"[{}] {}/{} batches processed ({}%)"
-						.format(
-							table.name,
-							count, total,
-							round(count / total * 100)
-						)
+			count += 1  # DEBUG !
+			if count % progress == 0:
+				logging.info(
+					"[{}] {}/{} batches processed ({}%)"
+					.format(
+						table.name,
+						count, total,
+						round(count / total * 100)
 					)
+				)
 
 		await out.put(None)
 		logging.debug("[{}] grab loop done".format(table.name))

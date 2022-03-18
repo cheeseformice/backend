@@ -239,7 +239,6 @@ class RunnerPool:
 				tasks.add(removed)
 				removed = None
 
-
 			# Wait until any of the internal or external fetch are complete
 			done, pending = await asyncio.wait(
 				tasks, return_when=asyncio.FIRST_COMPLETED

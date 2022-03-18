@@ -211,11 +211,35 @@ class RunnerPool:
 		internal_hashes = {}
 		external_hashes = {}
 
+		internal_count = 0
+		external_count = 0
+
 		get_internal = asyncio.create_task(inp.get())
 		get_external = asyncio.create_task(inp2.get())
 		tasks = {get_internal, get_external}
+		removed = None
 
 		while True:
+			a = max(internal_count, external_count)
+			b = min(internal_count, external_count)
+			ratio = a / b
+			if ratio >= 3:
+				# If one stream has stored 3x more than the other
+				# stop the stream, as it is filling up the memory
+				if removed is None:
+					if a == internal_count:
+						removed = get_internal
+					else:
+						removed = get_external
+
+					tasks.remove(removed)
+			elif ratio < 1.5 and removed is not None:
+				# If one stream has been stopped and the other caught up,
+				# resume the stopped stream
+				tasks.add(removed)
+				removed = None
+
+
 			# Wait until any of the internal or external fetch are complete
 			done, pending = await asyncio.wait(
 				tasks, return_when=asyncio.FIRST_COMPLETED
@@ -239,6 +263,8 @@ class RunnerPool:
 						get_external = task = asyncio.create_task(coro)
 						read, write = internal_hashes, external_hashes
 
+					stored = 0
+					removed = 0
 					for row in batch:
 						_id, new_hash = row[0], row[1]
 
@@ -256,12 +282,21 @@ class RunnerPool:
 								needed -= 1
 
 							# and free some memory
+							removed += 1
 							del read[_id]
 
 						# If this id hasn't been read by the other input
 						else:
 							# we mark it as read by this one
+							stored += 1
 							write[_id] = new_hash
+
+					if task == get_internal:
+						internal_count += stored
+						external_count -= removed
+					else:
+						external_count += stored
+						internal_count -= removed
 
 					# And we schedule this coroutine to run again
 					tasks.add(task)

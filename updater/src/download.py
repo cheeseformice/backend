@@ -222,7 +222,7 @@ class RunnerPool:
 		while True:
 			a = max(internal_count, external_count)
 			b = min(internal_count, external_count)
-			ratio = a / b
+			ratio = a / max(b, 1)
 			if ratio >= 3:
 				# If one stream has stored 3x more than the other
 				# stop the stream, as it is filling up the memory

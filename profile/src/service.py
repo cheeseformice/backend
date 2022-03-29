@@ -260,7 +260,7 @@ async def profile_player(request):
 			subj = to_cfm_roles(row.cfm_roles or 0)
 
 			if "admin" in me or "dev" in me:
-				if "mod" in subj or "trainee" in subj:
+				if "mod" in subj or "trainee" in subj or "translator" in subj:
 					last_login = row.login or datetime(2010, 5, 14)
 
 		period = await fetch_period(conn, request, player_changelog, row)

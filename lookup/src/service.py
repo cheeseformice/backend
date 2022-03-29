@@ -266,6 +266,7 @@ async def lookup_player(request):
 				.outerjoin(roles, roles.c.id == player.c.id)
 			)
 			.where(name_query)
+			.order_by(desc(player.c.round_played))
 		)
 		if len(name) < 4:
 			count_query = None

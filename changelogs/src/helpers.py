@@ -22,6 +22,20 @@ def filter_private(logs: Dict[str, LogInfo], settings) -> Dict[str, LogInfo]:
 	return filtered
 
 
+def bypasses_permissions(auth, user: int) -> bool:
+	if auth is None:
+		return False
+	if user == auth["user"]:
+		return True
+	roles = auth["cfm_roles"]
+	return (
+		"dev" in roles
+		or "admin" in roles
+		or "mod" in roles
+		or "trainee" in roles
+	)
+
+
 def check_needs(logs: Dict[str, LogInfo]) -> Tuple[bool]:
 	member, total = 0, len(logs)
 	for name in logs.keys():

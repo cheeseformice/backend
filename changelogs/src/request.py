@@ -1,5 +1,6 @@
 from common import service
-from helpers import filter_private, check_needs, fix_dates
+from helpers import filter_private, check_needs, fix_dates, \
+	bypasses_permissions
 from fetch import fetch_player_info, fetch_player_logs, fetch_member_logs
 from read import read_history
 
@@ -23,10 +24,8 @@ async def player_logs(request):
 		if player_info is None:
 			return await request.reject("NotFound", "Player not found")
 
-		# logged in and requesting their own logs?
-		privileged: bool = auth is not None and auth["user"] == user
 		logs = PlayerLogs.filter(logs_req)
-		if not privileged:
+		if not bypasses_permissions(auth, user):
 			logs = filter_private(logs, player_info)
 
 		# fetch needed logs

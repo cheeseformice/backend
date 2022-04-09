@@ -246,6 +246,8 @@ services:
       - tfmapi
     ports:
       - "80:80"
+    environment:
+      - MICESTATS_IP
 
 volumes:
   db-data:

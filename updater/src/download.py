@@ -217,7 +217,7 @@ class RunnerPool:
 		get_internal = asyncio.create_task(inp.get())
 		get_external = asyncio.create_task(inp2.get())
 		tasks = {get_internal, get_external}
-		removed = None
+		paused = None
 
 		while True:
 			a = max(internal_count, external_count)
@@ -226,18 +226,18 @@ class RunnerPool:
 			if ratio >= 3:
 				# If one stream has stored 3x more than the other
 				# stop the stream, as it is filling up the memory
-				if removed is None:
+				if paused is None:
 					if a == internal_count:
-						removed = get_internal
+						paused = get_internal
 					else:
-						removed = get_external
+						paused = get_external
 
-					tasks.remove(removed)
-			elif ratio < 1.5 and removed is not None:
+					tasks.remove(paused)
+			elif ratio < 1.5 and paused is not None:
 				# If one stream has been stopped and the other caught up,
 				# resume the stopped stream
-				tasks.add(removed)
-				removed = None
+				tasks.add(paused)
+				paused = None
 
 			# Wait until any of the internal or external fetch are complete
 			done, pending = await asyncio.wait(

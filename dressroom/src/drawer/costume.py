@@ -46,7 +46,7 @@ class Costume(AssetLoader):
 			if "Couleur" in _id:
 				name, hexa = _id.split("_")
 
-				color_id = int(name[7:])
+				color_id = int(name[7:] or "0")
 				color = int(hexa, 16)
 				colors[color_id] = color
 
